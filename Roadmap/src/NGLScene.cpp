@@ -178,32 +178,35 @@ void NGLScene::buildRoadmap()
    * Compute the distance to each of the four goals (the first four vertices)
    * for all vertices using Dijkstra's algorithm.
    */
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-  for (int i = 0; i < 4; ++i) {
+  for (int i = 0; i < 4; ++i)
+  {
     std::multimap<float, int> Q;
     std::vector<std::multimap<float, int>::iterator> posInQ(m_roadmap.size(), Q.end());
 
     m_roadmap[i].distToGoal[i] = 0.0f;
     posInQ[i] = Q.insert(std::make_pair(0.0f, i));
 
-    while (!Q.empty()) {
+    while (!Q.empty())
+    {
       const int u = Q.begin()->second;
       Q.erase(Q.begin());
       posInQ[u] = Q.end();
 
-      for (int j = 0; j < static_cast<int>(m_roadmap[u].neighbors.size()); ++j) {
+      for (int j = 0; j < static_cast<int>(m_roadmap[u].neighbors.size()); ++j)
+      {
         const int v = m_roadmap[u].neighbors[j];
         const float dist_uv = RVO::abs(m_roadmap[v].position - m_roadmap[u].position);
 
-        if (m_roadmap[v].distToGoal[i] > m_roadmap[u].distToGoal[i] + dist_uv) {
+        if (m_roadmap[v].distToGoal[i] > m_roadmap[u].distToGoal[i] + dist_uv)
+        {
           m_roadmap[v].distToGoal[i] = m_roadmap[u].distToGoal[i] + dist_uv;
 
-          if (posInQ[v] == Q.end()) {
+          if (posInQ[v] == Q.end())
+          {
             posInQ[v] = Q.insert(std::make_pair(m_roadmap[v].distToGoal[i], v));
           }
-          else {
+          else
+          {
             Q.erase(posInQ[v]);
             posInQ[v] = Q.insert(std::make_pair(m_roadmap[v].distToGoal[i], v));
           }
