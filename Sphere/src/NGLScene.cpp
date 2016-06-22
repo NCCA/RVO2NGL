@@ -42,51 +42,52 @@ void NGLScene::setupSim()
 {
   m_sim.reset(new RVO::RVOSimulator());
   /* Specify the global time step of the simulation. */
-  m_sim->setTimeStep(0.25f);
+  m_sim->setTimeStep(0.5f);
   /* Specify the default parameters for agents that are subsequently added. */
-  m_sim->setAgentDefaults(15.0f, 10, 10.0f, 10.0f, 1.5f, 2.0f);
+  m_sim->setAgentDefaults(15.0f, 10, 10.0f, 1.5f, 2.0f);
 
-  /*
-   * Add agents, specifying their start position, and store their goals on the
-   * opposite side of the environment.
-   */
-  for (size_t i = 0; i < 250; ++i)
-  {
-    m_sim->addAgent(200.0f *
-                  RVO::Vector2(std::cosf(i * 2.0f * M_PI / 250.0f),
-                               std::sinf(i * 2.0f * M_PI / 250.0f)));
-    m_goals.push_back(-m_sim->getAgentPosition(i));
-  }
+  /* Add agents, specifying their start position, and store their goals on the opposite side of the environment. */
+    for (float a = 0; a < M_PI; a += 0.1f)
+    {
+      const float z = 100.0f * std::cosf(a);
+      const float r = 100.0f * std::sinf(a);
+
+      for (size_t i = 0; i < r / 2.5f; ++i)
+      {
+        const float x = r * std::cosf(i * 2.0f * M_PI / (r / 2.5f));
+        const float y = r * std::sinf(i * 2.0f * M_PI / (r / 2.5f));
+
+        m_sim->addAgent(RVO::Vector3(x, y, z));
+        m_goals.push_back(-m_sim->getAgentPosition(m_sim->getNumAgents() - 1));
+      }
+    }
 }
 
 void NGLScene::setPreferredVelocities()
 {
-  /*
-   * Set the preferred velocity to be a vector of unit magnitude (speed) in the
-   * direction of the goal.
-   */
-  for (int i = 0; i < static_cast<int>(m_sim->getNumAgents()); ++i)
-  {
-    RVO::Vector2 goalVector = m_goals[i] - m_sim->getAgentPosition(i);
-
-    if (RVO::absSq(goalVector) > 1.0f)
+  /* Set the preferred velocity to be a vector of unit magnitude (speed) in the direction of the goal. */
+    for (size_t i = 0; i < m_sim->getNumAgents(); ++i)
     {
-      goalVector = RVO::normalize(goalVector);
-    }
+      RVO::Vector3 goalVector = m_goals[i] - m_sim->getAgentPosition(i);
 
-    m_sim->setAgentPrefVelocity(i, goalVector);
-  }
+      if (RVO::absSq(goalVector) > 1.0f) {
+        goalVector = RVO::normalize(goalVector);
+      }
+
+      m_sim->setAgentPrefVelocity(i, goalVector);
+    }
 }
 
 bool NGLScene::reachedGoal() const
 {
-  for (size_t i = 0; i < m_sim->getNumAgents(); ++i)
-  {
-    if (RVO::absSq(m_sim->getAgentPosition(i) - m_goals[i]) > m_sim->getAgentRadius(i) * m_sim->getAgentRadius(i))
+  /* Check if all agents have reached their goals. */
+    for (size_t i = 0; i < m_sim->getNumAgents(); ++i)
     {
-      return false;
+      if (RVO::absSq(m_sim->getAgentPosition(i) - m_goals[i]) > 4.0f * m_sim->getAgentRadius(i) * m_sim->getAgentRadius(i))
+      {
+        return false;
+      }
     }
-  }
 
     return true;
 }
@@ -121,7 +122,7 @@ void NGLScene::initializeGL()
   // Now we will create a basic Camera from the graphics library
   // This is a static camera so it only needs to be set once
   // First create Values for the camera position
-  ngl::Vec3 from(0,1,10);
+  ngl::Vec3 from(0,10,40);
   ngl::Vec3 to(0,0,0);
   ngl::Vec3 up(0,1,0);
   // now load to our new camera
@@ -130,7 +131,7 @@ void NGLScene::initializeGL()
   // The final two are near and far clipping planes of 0.5 and 10
   m_cam.setShape(50.0f,720.0f/576.0f,0.05f,350.0f);
   setupSim();
-  startTimer(1);
+  startTimer(0);
 
 }
 
@@ -176,8 +177,8 @@ void NGLScene::paintGL()
   for (int i = 0; i < static_cast<int>(m_sim->getNumAgents()); ++i)
   {
     ngl::Transformation t;
-    RVO::Vector2 p=m_sim->getAgentPosition(i);
-    t.setPosition(p.x(),0.0f,p.y());
+    RVO::Vector3 p=m_sim->getAgentPosition(i);
+    t.setPosition(p.x(),p.y(),p.z());
     // match the radius of the agent
     t.setScale(1.5f, 1.5f,1.5f);
     m_bodyTransform=t.getMatrix();
