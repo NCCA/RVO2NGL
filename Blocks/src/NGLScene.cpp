@@ -8,7 +8,7 @@
 //----------------------------------------------------------------------------------------------------------------------
 /// @brief the increment for x/y translation with mouse movement
 //----------------------------------------------------------------------------------------------------------------------
-constexpr float INCREMENT=1.0f;
+constexpr float INCREMENT=0.01f;
 //----------------------------------------------------------------------------------------------------------------------
 /// @brief the increment for the wheel zoom
 //----------------------------------------------------------------------------------------------------------------------
@@ -17,7 +17,7 @@ constexpr float ZOOM=2.0f;
 NGLScene::NGLScene()
 {
   // re-size the widget to that of the parent (in this case the GLFrame passed in on construction)
-  setTitle("RVO2 Demo Circle Space to Pause R to reset");
+  setTitle("RVO2 Demo Blocks Space to Pause R to reset");
 }
 
 
@@ -41,41 +41,96 @@ void NGLScene::resizeGL(int _w , int _h)
 void NGLScene::setupSim()
 {
   m_sim.reset(new RVO::RVOSimulator());
+
   /* Specify the global time step of the simulation. */
-  m_sim->setTimeStep(0.5f);
+  m_sim->setTimeStep(0.25f);
+
   /* Specify the default parameters for agents that are subsequently added. */
-  m_sim->setAgentDefaults(15.0f, 10, 10.0f, 1.0f, 2.0f);
+  m_sim->setAgentDefaults(15.0f, 10, 5.0f, 5.0f, 2.0f, 2.0f);
 
-  /* Add agents, specifying their start position, and store their goals on the opposite side of the environment. */
-    for (float a = 0; a < M_PI; a += 0.1f)
+  /*
+   * Add agents, specifying their start position, and store their goals on the
+   * opposite side of the environment.
+   */
+  for (size_t i = 0; i < 5; ++i)
+  {
+    for (size_t j = 0; j < 5; ++j)
     {
-      const float z = 100.0f * std::cosf(a);
-      const float r = 100.0f * std::sinf(a);
+      m_sim->addAgent(RVO::Vector2(55.0f + i * 10.0f,  55.0f + j * 10.0f));
+      m_goals.push_back(RVO::Vector2(-75.0f, -75.0f));
 
-      for (size_t i = 0; i < r / 2.5f; ++i)
-      {
-        const float x = r * std::cosf(i * 2.0f * M_PI / (r / 2.5f));
-        const float y = r * std::sinf(i * 2.0f * M_PI / (r / 2.5f));
+      m_sim->addAgent(RVO::Vector2(-55.0f - i * 10.0f,  55.0f + j * 10.0f));
+      m_goals.push_back(RVO::Vector2(75.0f, -75.0f));
 
-        m_sim->addAgent(RVO::Vector3(x, y, z));
-        m_goals.push_back(-m_sim->getAgentPosition(m_sim->getNumAgents() - 1));
-      }
+      m_sim->addAgent(RVO::Vector2(55.0f + i * 10.0f, -55.0f - j * 10.0f));
+      m_goals.push_back(RVO::Vector2(-75.0f, 75.0f));
+
+      m_sim->addAgent(RVO::Vector2(-55.0f - i * 10.0f, -55.0f - j * 10.0f));
+      m_goals.push_back(RVO::Vector2(75.0f, 75.0f));
     }
+  }
+
+  /*
+   * Add (polygonal) obstacles, specifying their vertices in counterclockwise
+   * order.
+   */
+  std::vector<RVO::Vector2> obstacle1, obstacle2, obstacle3, obstacle4;
+
+  obstacle1.push_back(RVO::Vector2(-10.0f, 40.0f));
+  obstacle1.push_back(RVO::Vector2(-40.0f, 40.0f));
+  obstacle1.push_back(RVO::Vector2(-40.0f, 10.0f));
+  obstacle1.push_back(RVO::Vector2(-10.0f, 10.0f));
+
+  obstacle2.push_back(RVO::Vector2(10.0f, 40.0f));
+  obstacle2.push_back(RVO::Vector2(10.0f, 10.0f));
+  obstacle2.push_back(RVO::Vector2(40.0f, 10.0f));
+  obstacle2.push_back(RVO::Vector2(40.0f, 40.0f));
+
+  obstacle3.push_back(RVO::Vector2(10.0f, -40.0f));
+  obstacle3.push_back(RVO::Vector2(40.0f, -40.0f));
+  obstacle3.push_back(RVO::Vector2(40.0f, -10.0f));
+  obstacle3.push_back(RVO::Vector2(10.0f, -10.0f));
+
+  obstacle4.push_back(RVO::Vector2(-10.0f, -40.0f));
+  obstacle4.push_back(RVO::Vector2(-10.0f, -10.0f));
+  obstacle4.push_back(RVO::Vector2(-40.0f, -10.0f));
+  obstacle4.push_back(RVO::Vector2(-40.0f, -40.0f));
+
+  m_sim->addObstacle(obstacle1);
+  m_sim->addObstacle(obstacle2);
+  m_sim->addObstacle(obstacle3);
+  m_sim->addObstacle(obstacle4);
+
+  /* Process the obstacles so that they are accounted for in the simulation. */
+  m_sim->processObstacles();
 }
 
 void NGLScene::setPreferredVelocities()
 {
-  /* Set the preferred velocity to be a vector of unit magnitude (speed) in the direction of the goal. */
-    for (size_t i = 0; i < m_sim->getNumAgents(); ++i)
+  /*
+   * Set the preferred velocity to be a vector of unit magnitude (speed) in the
+   * direction of the goal.
+   */
+  for (int i = 0; i < static_cast<int>(m_sim->getNumAgents()); ++i)
+  {
+    RVO::Vector2 goalVector = m_goals[i] - m_sim->getAgentPosition(i);
+
+    if (RVO::absSq(goalVector) > 1.0f)
     {
-      RVO::Vector3 goalVector = m_goals[i] - m_sim->getAgentPosition(i);
-
-      if (RVO::absSq(goalVector) > 1.0f) {
-        goalVector = RVO::normalize(goalVector);
-      }
-
-      m_sim->setAgentPrefVelocity(i, goalVector);
+      goalVector = RVO::normalize(goalVector);
     }
+
+    m_sim->setAgentPrefVelocity(i, goalVector);
+
+    /*
+     * Perturb a little to avoid deadlocks due to perfect symmetry.
+     */
+    float angle = std::rand() * 2.0f * M_PI / RAND_MAX;
+    float dist = std::rand() * 0.0001f / RAND_MAX;
+
+    m_sim->setAgentPrefVelocity(i, m_sim->getAgentPrefVelocity(i) +
+                              dist * RVO::Vector2(std::cosf(angle), std::sinf(angle)));
+  }
 }
 
 bool NGLScene::reachedGoal() const
@@ -83,7 +138,7 @@ bool NGLScene::reachedGoal() const
   /* Check if all agents have reached their goals. */
     for (size_t i = 0; i < m_sim->getNumAgents(); ++i)
     {
-      if (RVO::absSq(m_sim->getAgentPosition(i) - m_goals[i]) > 4.0f * m_sim->getAgentRadius(i) * m_sim->getAgentRadius(i))
+      if (RVO::absSq(m_sim->getAgentPosition(i) - m_goals[i]) > 20.0f * 20.0f)
       {
         return false;
       }
@@ -122,7 +177,7 @@ void NGLScene::initializeGL()
   // Now we will create a basic Camera from the graphics library
   // This is a static camera so it only needs to be set once
   // First create Values for the camera position
-  ngl::Vec3 from(0,0,60);
+  ngl::Vec3 from(0,1,10);
   ngl::Vec3 to(0,0,0);
   ngl::Vec3 up(0,1,0);
   // now load to our new camera
@@ -130,10 +185,8 @@ void NGLScene::initializeGL()
   // set the shape using FOV 45 Aspect Ratio based on Width and Height
   // The final two are near and far clipping planes of 0.5 and 10
   m_cam.setShape(50.0f,720.0f/576.0f,0.05f,350.0f);
-  ngl::VAOPrimitives::instance()->createSphere("sphere",1.5,40);
   setupSim();
-  startTimer(0);
-
+  startTimer(1);
 
 }
 
@@ -176,16 +229,60 @@ void NGLScene::paintGL()
   m_globalTransformMatrix.m_m[3][1] = m_modelPos.m_y;
   m_globalTransformMatrix.m_m[3][2] = m_modelPos.m_z;
   // now draw
-  for (int i = 0; i < static_cast<int>(m_sim->getNumAgents()); ++i)
+  for(auto g : m_goals)
   {
+    shader->setUniform("Colour",0,1,0,1);
+
     ngl::Transformation t;
-    RVO::Vector3 p=m_sim->getAgentPosition(i);
-    t.setPosition(p.x(),p.y(),p.z());
-    t.setScale(0.5f,0.5f,0.5f);
+    t.setPosition(g.x(),0.0f,g.y());
     m_bodyTransform=t.getMatrix();
     loadMatricesToShader();
-    ngl::VAOPrimitives::instance()->draw("sphere");
+    ngl::VAOPrimitives::instance()->draw("cube");
+
   }
+
+  for (int i = 0; i < static_cast<int>(m_sim->getNumAgents()); ++i)
+  {
+    shader->setUniform("Colour",1,1,0,1);
+
+    ngl::Transformation t;
+    RVO::Vector2 p=m_sim->getAgentPosition(i);
+    t.setPosition(p.x(),0.0f,p.y());
+    // match the radius of the agent
+    t.setScale(1.5f, 1.5f,1.5f);
+    m_bodyTransform=t.getMatrix();
+    loadMatricesToShader();
+    ngl::VAOPrimitives::instance()->draw("troll");
+  }
+
+  // hard coded draw of the Goals from the scene setup
+  shader->setUniform("Colour",1.0f,0.0f,0.0f,1.0f);
+
+  ngl::Transformation t;
+  t.setPosition(-25.0,0.0,25);
+  t.setScale(30.0f,1.0f,30.0f);
+  m_bodyTransform=t.getMatrix();
+  loadMatricesToShader();
+  ngl::VAOPrimitives::instance()->draw("cube");
+
+  t.setPosition(25.0,0.0,25);
+  t.setScale(30.0f,1.0f,30.0f);
+  m_bodyTransform=t.getMatrix();
+  loadMatricesToShader();
+  ngl::VAOPrimitives::instance()->draw("cube");
+
+  t.setPosition(-25.0,0.0,-25);
+  t.setScale(30.0f,1.0f,30.0f);
+  m_bodyTransform=t.getMatrix();
+  loadMatricesToShader();
+  ngl::VAOPrimitives::instance()->draw("cube");
+
+  t.setPosition(25.0,0.0,-25);
+  t.setScale(30.0f,1.0f,30.0f);
+  m_bodyTransform=t.getMatrix();
+  loadMatricesToShader();
+  ngl::VAOPrimitives::instance()->draw("cube");
+
 
 }
 

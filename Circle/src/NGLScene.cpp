@@ -12,7 +12,7 @@ constexpr float INCREMENT=0.01f;
 //----------------------------------------------------------------------------------------------------------------------
 /// @brief the increment for the wheel zoom
 //----------------------------------------------------------------------------------------------------------------------
-constexpr float ZOOM=0.1f;
+constexpr float ZOOM=2.0f;
 
 NGLScene::NGLScene()
 {
@@ -173,6 +173,17 @@ void NGLScene::paintGL()
   m_globalTransformMatrix.m_m[3][1] = m_modelPos.m_y;
   m_globalTransformMatrix.m_m[3][2] = m_modelPos.m_z;
   // now draw
+  for(auto g : m_goals)
+  {
+    ngl::Transformation t;
+    t.setPosition(g.x(),0.0f,g.y());
+    m_bodyTransform=t.getMatrix();
+    loadMatricesToShader();
+    ngl::VAOPrimitives::instance()->draw("cube");
+
+  }
+
+
   for (int i = 0; i < static_cast<int>(m_sim->getNumAgents()); ++i)
   {
     ngl::Transformation t;
