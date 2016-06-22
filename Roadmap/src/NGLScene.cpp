@@ -17,7 +17,7 @@ constexpr float ZOOM=2.0f;
 NGLScene::NGLScene()
 {
   // re-size the widget to that of the parent (in this case the GLFrame passed in on construction)
-  setTitle("RVO2 Demo Blocks Space to Pause R to reset");
+  setTitle("RVO2 Demo Roadmap Space to Pause R to reset");
 }
 
 
@@ -44,31 +44,6 @@ void NGLScene::setupSim()
 
   /* Specify the global time step of the simulation. */
   m_sim->setTimeStep(0.25f);
-
-  /* Specify the default parameters for agents that are subsequently added. */
-  m_sim->setAgentDefaults(15.0f, 10, 5.0f, 5.0f, 2.0f, 2.0f);
-
-  /*
-   * Add agents, specifying their start position, and store their goals on the
-   * opposite side of the environment.
-   */
-  for (size_t i = 0; i < 6; ++i)
-  {
-    for (size_t j = 0; j < 6; ++j)
-    {
-      m_sim->addAgent(RVO::Vector2(55.0f + i * 10.0f,  55.0f + j * 10.0f));
-      m_goals.push_back(RVO::Vector2(-75.0f, -75.0f));
-
-      m_sim->addAgent(RVO::Vector2(-55.0f - i * 10.0f,  55.0f + j * 10.0f));
-      m_goals.push_back(RVO::Vector2(75.0f, -75.0f));
-
-      m_sim->addAgent(RVO::Vector2(55.0f + i * 10.0f, -55.0f - j * 10.0f));
-      m_goals.push_back(RVO::Vector2(-75.0f, 75.0f));
-
-      m_sim->addAgent(RVO::Vector2(-55.0f - i * 10.0f, -55.0f - j * 10.0f));
-      m_goals.push_back(RVO::Vector2(75.0f, 75.0f));
-    }
-  }
 
   /*
    * Add (polygonal) obstacles, specifying their vertices in counterclockwise
@@ -103,35 +78,198 @@ void NGLScene::setupSim()
 
   /* Process the obstacles so that they are accounted for in the simulation. */
   m_sim->processObstacles();
+
+  /* Add m_roadmap vertices. */
+  RoadmapVertex v;
+
+  /* Add the goal positions of agents. */
+  v.position = RVO::Vector2(-75.0f, -75.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(75.0f, -75.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(-75.0f, 75.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(75.0f, 75.0f);
+  m_roadmap.push_back(v);
+
+  /* Add m_roadmap vertices around the obstacles. */
+  v.position = RVO::Vector2(-42.0f, -42.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(-42.0f, -8.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(-42.0f, 8.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(-42.0f, 42.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(-8.0f, -42.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(-8.0f, -8.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(-8.0f, 8.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(-8.0f, 42.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(8.0f, -42.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(8.0f, -8.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(8.0f, 8.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(8.0f, 42.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(42.0f, -42.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(42.0f, -8.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(42.0f, 8.0f);
+  m_roadmap.push_back(v);
+  v.position = RVO::Vector2(42.0f, 42.0f);
+  m_roadmap.push_back(v);
+
+  /* Specify the default parameters for agents that are subsequently added. */
+  m_sim->setAgentDefaults(15.0f, 10, 5.0f, 5.0f, 2.0f, 2.0f);
+
+  /*
+   * Add agents, specifying their start position, and store goals on the
+   * opposite side of the environment (m_roadmap vertices).
+   */
+  for (size_t i = 0; i < 5; ++i)
+  {
+    for (size_t j = 0; j < 5; ++j)
+    {
+      m_sim->addAgent(RVO::Vector2(55.0f + i * 10.0f,  55.0f + j * 10.0f));
+      m_goals.push_back(0);
+
+      m_sim->addAgent(RVO::Vector2(-55.0f - i * 10.0f,  55.0f + j * 10.0f));
+      m_goals.push_back(1);
+
+      m_sim->addAgent(RVO::Vector2(55.0f + i * 10.0f, -55.0f - j * 10.0f));
+      m_goals.push_back(2);
+
+      m_sim->addAgent(RVO::Vector2(-55.0f - i * 10.0f, -55.0f - j * 10.0f));
+      m_goals.push_back(3);
+    }
+  }
+
+}
+
+
+void NGLScene::buildRoadmap()
+{
+  /* Connect the m_roadmap vertices by edges if mutually visible. */
+  for (int i = 0; i < static_cast<int>(m_roadmap.size()); ++i)
+  {
+    for (int j = 0; j < static_cast<int>(m_roadmap.size()); ++j)
+    {
+      if (m_sim->queryVisibility(m_roadmap[i].position, m_roadmap[j].position, m_sim->getAgentRadius(0)))
+      {
+        m_roadmap[i].neighbors.push_back(j);
+      }
+    }
+
+    /*
+     * Initialize the distance to each of the four goal vertices at infinity
+     * (9e9f).
+     */
+    m_roadmap[i].distToGoal.resize(4, 9e9f);
+  }
+
+  /*
+   * Compute the distance to each of the four goals (the first four vertices)
+   * for all vertices using Dijkstra's algorithm.
+   */
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+  for (int i = 0; i < 4; ++i) {
+    std::multimap<float, int> Q;
+    std::vector<std::multimap<float, int>::iterator> posInQ(m_roadmap.size(), Q.end());
+
+    m_roadmap[i].distToGoal[i] = 0.0f;
+    posInQ[i] = Q.insert(std::make_pair(0.0f, i));
+
+    while (!Q.empty()) {
+      const int u = Q.begin()->second;
+      Q.erase(Q.begin());
+      posInQ[u] = Q.end();
+
+      for (int j = 0; j < static_cast<int>(m_roadmap[u].neighbors.size()); ++j) {
+        const int v = m_roadmap[u].neighbors[j];
+        const float dist_uv = RVO::abs(m_roadmap[v].position - m_roadmap[u].position);
+
+        if (m_roadmap[v].distToGoal[i] > m_roadmap[u].distToGoal[i] + dist_uv) {
+          m_roadmap[v].distToGoal[i] = m_roadmap[u].distToGoal[i] + dist_uv;
+
+          if (posInQ[v] == Q.end()) {
+            posInQ[v] = Q.insert(std::make_pair(m_roadmap[v].distToGoal[i], v));
+          }
+          else {
+            Q.erase(posInQ[v]);
+            posInQ[v] = Q.insert(std::make_pair(m_roadmap[v].distToGoal[i], v));
+          }
+        }
+      }
+    }
+  }
 }
 
 void NGLScene::setPreferredVelocities()
 {
   /*
-   * Set the preferred velocity to be a vector of unit magnitude (speed) in the
-   * direction of the goal.
-   */
-  for (size_t i = 0; i < m_sim->getNumAgents(); ++i)
-  {
-    RVO::Vector2 goalVector = m_goals[i] - m_sim->getAgentPosition(i);
-
-    if (RVO::absSq(goalVector) > 1.0f)
-    {
-      goalVector = RVO::normalize(goalVector);
-    }
-
-    m_sim->setAgentPrefVelocity(i, goalVector);
-
-    /*
-     * Perturb a little to avoid deadlocks due to perfect symmetry.
+     * Set the preferred velocity to be a vector of unit magnitude (speed) in the
+     * direction of the visible roadmap vertex that is on the shortest path to the
+     * goal.
      */
-    srand(time(NULL));
-    float angle = std::rand() * 2.0f * M_PI / RAND_MAX;
-    float dist = std::rand() * 0.0001f / RAND_MAX;
+    for (int i = 0; i < static_cast<int>(m_sim->getNumAgents()); ++i)
+    {
+      float minDist = 9e9f;
+      int minVertex = -1;
 
-    m_sim->setAgentPrefVelocity(i, m_sim->getAgentPrefVelocity(i) +
-                              dist * RVO::Vector2(std::cosf(angle), std::sinf(angle)));
-  }
+      for (int j = 0; j < static_cast<int>(m_roadmap.size()); ++j)
+      {
+        if (RVO::abs(m_roadmap[j].position - m_sim->getAgentPosition(i)) + m_roadmap[j].distToGoal[m_goals[i]] < minDist &&
+          m_sim->queryVisibility(m_sim->getAgentPosition(i), m_roadmap[j].position, m_sim->getAgentRadius(i)))
+        {
+
+          minDist = RVO::abs(m_roadmap[j].position - m_sim->getAgentPosition(i)) + m_roadmap[j].distToGoal[m_goals[i]];
+          minVertex = j;
+        }
+      }
+
+      if (minVertex == -1)
+      {
+        /* No roadmap vertex is visible; should not happen. */
+        m_sim->setAgentPrefVelocity(i, RVO::Vector2(0, 0));
+      }
+      else
+      {
+        if (RVO::absSq(m_roadmap[minVertex].position -
+                       m_sim->getAgentPosition(i)) == 0.0f)
+        {
+          if (minVertex == m_goals[i])
+          {
+            m_sim->setAgentPrefVelocity(i, RVO::Vector2());
+          }
+          else
+          {
+            m_sim->setAgentPrefVelocity(i, RVO::normalize(m_roadmap[m_goals[i]].position - m_sim->getAgentPosition(i)));
+          }
+        }
+        else
+        {
+          m_sim->setAgentPrefVelocity(i, RVO::normalize(m_roadmap[minVertex].position - m_sim->getAgentPosition(i)));
+        }
+      }
+
+      /*
+       * Perturb a little to avoid deadlocks due to perfect symmetry.
+       */
+      float angle = std::rand() * 2.0f * M_PI / RAND_MAX;
+      float dist = std::rand() * 0.0001f / RAND_MAX;
+
+      m_sim->setAgentPrefVelocity(i, m_sim->getAgentPrefVelocity(i) +
+                                dist * RVO::Vector2(std::cos(angle), std::sin(angle)));
+    }
 }
 
 bool NGLScene::reachedGoal()
@@ -139,12 +277,12 @@ bool NGLScene::reachedGoal()
   /* Check if all agents have reached their goals. */
     for (size_t i = 0; i < m_sim->getNumAgents(); ++i)
     {
-      if (RVO::absSq(m_sim->getAgentPosition(i) - m_goals[i]) > 20.0f * 20.0f)
+      if (RVO::absSq(m_sim->getAgentPosition(i) - m_roadmap[m_goals[i]].position) > 20.0f * 20.0f)
       {
         return false;
       }
     }
-    setupSim();
+
     return true;
 }
 
@@ -187,6 +325,7 @@ void NGLScene::initializeGL()
   // The final two are near and far clipping planes of 0.5 and 10
   m_cam.setShape(50.0f,720.0f/576.0f,0.05f,350.0f);
   setupSim();
+  buildRoadmap();
   startTimer(1);
 
 }
@@ -230,18 +369,6 @@ void NGLScene::paintGL()
   m_globalTransformMatrix.m_m[3][1] = m_modelPos.m_y;
   m_globalTransformMatrix.m_m[3][2] = m_modelPos.m_z;
   // now draw
-  for(auto g : m_goals)
-  {
-    shader->setUniform("Colour",0.0f,1.0f,0.0f,1.0f);
-
-    ngl::Transformation t;
-    t.setPosition(g.x(),0.0f,g.y());
-    t.setScale(2.0,1.0,2.0);
-    m_bodyTransform=t.getMatrix();
-    loadMatricesToShader();
-    ngl::VAOPrimitives::instance()->draw("cube");
-
-  }
 
   for (size_t i = 0; i < m_sim->getNumAgents(); ++i)
   {
@@ -381,7 +508,7 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   {
   // escape key to quite
   case Qt::Key_Escape : QGuiApplication::exit(EXIT_SUCCESS); break;
-  case Qt::Key_R : setupSim(); break;
+  case Qt::Key_R : setupSim(); buildRoadmap(); break;
   case Qt::Key_Space : m_animate^=true; break;
   default : break;
 

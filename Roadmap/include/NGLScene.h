@@ -140,13 +140,25 @@ private:
 
     /// the sim
     std::unique_ptr<RVO::RVOSimulator > m_sim;
-    std::vector <RVO::Vector2> m_goals;
+    std::vector <int> m_goals;
     void setupSim();
+    void buildRoadmap();
     void setPreferredVelocities();
     bool reachedGoal() ;
     void timerEvent(QTimerEvent *);
     void loadMatricesToShader();
     bool m_animate=true;
+
+    class RoadmapVertex {
+    public:
+      RVO::Vector2 position;
+      std::vector<int> neighbors;
+      std::vector<float> distToGoal;
+    };
+
+    /* Store the roadmap. */
+    std::vector<RoadmapVertex> m_roadmap;
+
 
 };
 
