@@ -4,6 +4,7 @@
 #include "NGLScene.h"
 #include <ngl/NGLInit.h>
 #include <ngl/ShaderLib.h>
+#include <ngl/Random.h>
 #include <iostream>
 //----------------------------------------------------------------------------------------------------------------------
 /// @brief the increment for x/y translation with mouse movement
@@ -267,8 +268,9 @@ void NGLScene::setPreferredVelocities()
       /*
        * Perturb a little to avoid deadlocks due to perfect symmetry.
        */
-      float angle = std::rand() * 2.0f * M_PI / RAND_MAX;
-      float dist = std::rand() * 0.0001f / RAND_MAX;
+      ngl::Random *rng=ngl::Random::instance();
+      auto angle = rng->randomNumber(2.0f * ngl::PI);
+      auto dist =  rng->randomNumber(0.0001f );
 
       m_sim->setAgentPrefVelocity(i, m_sim->getAgentPrefVelocity(i) +
                                 dist * RVO::Vector2(std::cos(angle), std::sin(angle)));
@@ -285,7 +287,8 @@ bool NGLScene::reachedGoal()
         return false;
       }
     }
-
+    setupSim();
+    buildRoadmap();
     return true;
 }
 
@@ -378,6 +381,13 @@ void NGLScene::paintGL()
     shader->setUniform("Colour",1.0f,1.0f,0.0f,1.0f);
     ngl::Transformation t;
     RVO::Vector2 p=m_sim->getAgentPosition(i);
+    RVO::Vector2 v=m_sim->getAgentVelocity(i);
+    RVO::Vector2 next=p+v;
+    RVO::Vector2 final=next-p;
+    auto yrot=ngl::degrees(atan2(final.x(),final.y()));
+
+    t.setRotation(0.0f,yrot,0.0f);
+
     t.setPosition(p.x(),0.0f,p.y());
     // match the radius of the agent
     t.setScale(1.5f, 1.5f,1.5f);

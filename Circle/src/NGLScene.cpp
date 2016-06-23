@@ -184,11 +184,17 @@ void NGLScene::paintGL()
   }
 
 
-  for (int i = 0; i < static_cast<int>(m_sim->getNumAgents()); ++i)
+  for (size_t i = 0; i < m_sim->getNumAgents(); ++i)
   {
     ngl::Transformation t;
     RVO::Vector2 p=m_sim->getAgentPosition(i);
+    RVO::Vector2 v=m_sim->getAgentVelocity(i);
+    RVO::Vector2 next=p+v;
+    RVO::Vector2 final=next-p;
+    auto yrot=ngl::degrees(atan2(final.x(),final.y()));
+
     t.setPosition(p.x(),0.0f,p.y());
+    t.setRotation(0.0f,yrot,0.0f);
     // match the radius of the agent
     t.setScale(1.5f, 1.5f,1.5f);
     m_bodyTransform=t.getMatrix();
