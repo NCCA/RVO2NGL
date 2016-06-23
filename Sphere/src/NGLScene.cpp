@@ -18,7 +18,7 @@ constexpr float ZOOM=2.0f;
 NGLScene::NGLScene()
 {
   // re-size the widget to that of the parent (in this case the GLFrame passed in on construction)
-  setTitle("RVO2 Demo Circle Space to Pause R to reset");
+  setTitle("RVO2 Demo Sphere Space to Pause R to reset");
 }
 
 
@@ -134,7 +134,7 @@ void NGLScene::initializeGL()
   ngl::VAOPrimitives::instance()->createSphere("sphere",1.5,40);
   setupSim();
   buildVAO();
-  startTimer(20);
+  startTimer(0);
 
 
 }
