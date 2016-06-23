@@ -23,7 +23,7 @@ SOURCES+= $$PWD/src/main.cpp \
 HEADERS+= $$PWD/include/NGLScene.h \
           $$PWD/../RVO2/*.h
 
-
+OTHER_FILES+=$$PWD/shaders/*
 # and add the include dir into the search path for Qt and make
 INCLUDEPATH +=./include
 INCLUDEPATH +=$$PWD/../RVO2/

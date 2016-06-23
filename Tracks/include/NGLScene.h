@@ -147,7 +147,12 @@ private:
     void timerEvent(QTimerEvent *);
     void loadMatricesToShader();
     bool m_animate=true;
+
     std::vector <ngl::Vec3> m_tracks;
+    // array of unique colours for agents
+    std::vector <ngl::Vec4> m_colours;
+    std::vector <ngl::Vec3> m_perVertColour;
+    void setColourArray(size_t _numColours);
 
 };
 

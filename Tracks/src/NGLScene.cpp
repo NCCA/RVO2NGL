@@ -6,6 +6,10 @@
 #include <ngl/Random.h>
 #include <ngl/Util.h>
 #include <ngl/ShaderLib.h>
+#include <ngl/NGLStream.h>
+#include <ngl/Random.h>
+#include <ngl/VAOFactory.h>
+#include <ngl/MultiBufferVAO.h>
 
 #include <iostream>
 //----------------------------------------------------------------------------------------------------------------------
@@ -149,6 +153,7 @@ bool NGLScene::reachedGoal()
       }
     }
     m_tracks.clear();
+    m_perVertColour.clear();
     setupSim();
     return true;
 }
@@ -161,6 +166,17 @@ void NGLScene::timerEvent(QTimerEvent *)
     m_sim->doStep();
   }
   update();
+}
+
+
+
+void NGLScene::setColourArray(size_t _numColours)
+{
+  ngl::Random *rng=ngl::Random::instance();
+  for(auto i=0; i<_numColours; ++i)
+  {
+      m_colours.push_back(rng->getRandomNormalizedVec4());
+  }
 }
 
 
@@ -193,7 +209,34 @@ void NGLScene::initializeGL()
   m_cam.setShape(50.0f,720.0f/576.0f,0.05f,350.0f);
   setupSim();
   ngl::VAOPrimitives::instance()->createTrianglePlane( "grid",200,200,10,10,ngl::Vec3::up());
+  setColourArray(m_sim->getNumAgents());
+
   startTimer(1);
+
+
+ // we are creating a shader called Phong to save typos
+ // in the code create some constexpr
+ constexpr auto shaderProgram="Track";
+ constexpr auto vertexShader="TrackVertex";
+ constexpr auto fragShader="TrackFragment";
+ // create the shader program
+ shader->createShaderProgram(shaderProgram);
+ // now we are going to create empty shaders for Frag and Vert
+ shader->attachShader(vertexShader,ngl::ShaderType::VERTEX);
+ shader->attachShader(fragShader,ngl::ShaderType::FRAGMENT);
+ // attach the source
+ shader->loadShaderSource(vertexShader,"shaders/TrackVertex.glsl");
+ shader->loadShaderSource(fragShader,"shaders/TrackFragment.glsl");
+ // compile the shaders
+ shader->compileShader(vertexShader);
+ shader->compileShader(fragShader);
+ // add them to the program
+ shader->attachShaderToProgram(shaderProgram,vertexShader);
+ shader->attachShaderToProgram(shaderProgram,fragShader);
+ // now we have associated that data we can link the shader
+ shader->linkProgramObject(shaderProgram);
+ // and make it active ready to load values
+ (*shader)[shaderProgram]->use();
 
 }
 
@@ -252,7 +295,7 @@ void NGLScene::paintGL()
 
   for (size_t i = 0; i < m_sim->getNumAgents(); ++i)
   {
-    shader->setUniform("Colour",1.0f,1.0f,0.0f,1.0f);
+    shader->setUniform("Colour",m_colours[i]);
     ngl::Transformation t;
     RVO::Vector2 p=m_sim->getAgentPosition(i);
     RVO::Vector2 v=m_sim->getAgentVelocity(i);
@@ -263,7 +306,9 @@ void NGLScene::paintGL()
     t.setRotation(0.0f,yrot,0.0f);
 
     t.setPosition(p.x(),0.0f,p.y());
-    m_tracks.push_back(ngl::Vec3(p.x(),0.1f,p.y()) );
+
+    m_tracks.push_back(ngl::Vec3(p.x(),0.1f,p.y()));
+    m_perVertColour.push_back(m_colours[i].toVec3());
     // match the radius of the agent
     t.setScale(1.5f, 1.5f,1.5f);
     m_bodyTransform=t.getMatrix();
@@ -314,27 +359,27 @@ void NGLScene::paintGL()
 
   // draw tracks
 
-  ngl::VertexArrayObject *vao =ngl::VertexArrayObject::createVOA(GL_POINTS);
+  ngl::AbstractVAO *vao= ngl::VAOFactory::createVAO("multiBufferVAO",GL_POINTS);
   vao->bind();
 
   // in this case we are going to set our data as the vertices above
-
-  vao->setData(m_tracks.size()*sizeof(ngl::Vec3),m_tracks[0].m_x);
-  // now we set the attribute pointer to be 0 (as this matches vertIn in our shader)
-
+  vao->setData(ngl::MultiBufferVAO::VertexData(m_tracks.size()*sizeof(ngl::Vec3),m_tracks[0].m_x));
   vao->setVertexAttributePointer(0,3,GL_FLOAT,0,0);
 
+  vao->setData(ngl::MultiBufferVAO::VertexData(m_perVertColour.size()*sizeof(ngl::Vec3),m_perVertColour[0].m_r));
+  vao->setVertexAttributePointer(1,3,GL_FLOAT,0,0);
+  //glVertexAttrib4f(1,1,1,0,1);
+
   vao->setNumIndices(m_tracks.size());
-  shader->use("nglColourShader");
-  shader->setUniform("Colour",1.0f,1.0f,1.0f,1.0f);
+  shader->use("Track");
   MV=  m_bodyTransform*m_globalTransformMatrix*m_cam.getViewMatrix();
   MVP= MV*m_cam.getVPMatrix();
 
   shader->setUniform("MVP",MVP);
-
+  glPointSize(2.0);
   vao->draw();
   vao->unbind();
-  vao->removeVOA();
+  vao->removeVAO();
 
 
 
@@ -434,7 +479,7 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   {
   // escape key to quite
   case Qt::Key_Escape : QGuiApplication::exit(EXIT_SUCCESS); break;
-  case Qt::Key_R : setupSim(); break;
+  case Qt::Key_R : setupSim(); m_tracks.clear(); m_perVertColour.clear();break;
   case Qt::Key_Space : m_animate^=true; break;
   default : break;
 
