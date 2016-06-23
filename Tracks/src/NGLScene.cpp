@@ -175,7 +175,10 @@ void NGLScene::setColourArray(size_t _numColours)
   ngl::Random *rng=ngl::Random::instance();
   for(auto i=0; i<_numColours; ++i)
   {
-      m_colours.push_back(rng->getRandomNormalizedVec4());
+      m_colours.push_back(ngl::Vec4(rng->randomPositiveNumber(1.0f)+0.2,
+                          rng->randomPositiveNumber(1.0f)+0.1,
+                          rng->randomPositiveNumber(1.0f)+0.2,
+                          1.0f));
   }
 }
 
