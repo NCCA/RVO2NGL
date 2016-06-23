@@ -19,6 +19,9 @@ It is based on [this](https://github.com/snape/RVO2/blob/master/examples/Roadmap
 #[Circle](https://github.com/NCCA/RVO2NGL/tree/master/Sphere)
 This demo uses the RVO2-3D version from [here] (https://github.com/snape/RVO2-3D). This demo creates a sphere of agents and makes them travel to thier antipodal position on the circle. It is based on [this](https://github.com/snape/RVO2-3D/blob/master/examples/Sphere.cpp) demo.
 
+#[Blocks](https://github.com/NCCA/RVO2NGL/tree/master/Tracks)
+This demo creates 4 block an a series of agents to navigate around them. It is based on [this](https://github.com/snape/RVO2/blob/master/examples/Blocks.cpp) demo. This version also plots the tracks made by the agents as a series of points.
+
 #Code Structure
 
 
