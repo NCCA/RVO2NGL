@@ -191,6 +191,7 @@ void NGLScene::initializeGL()
   // The final two are near and far clipping planes of 0.5 and 10
   m_cam.setShape(50.0f,720.0f/576.0f,0.05f,350.0f);
   setupSim();
+  ngl::VAOPrimitives::instance()->createTrianglePlane( "grid",200,200,10,10,ngl::Vec3::up());
   startTimer(1);
 
 }
@@ -199,7 +200,7 @@ void NGLScene::initializeGL()
 void NGLScene::loadMatricesToShader()
 {
   ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-
+  shader->use("nglDiffuseShader");
   ngl::Mat4 MV;
   ngl::Mat4 MVP;
   ngl::Mat3 normalMatrix;
@@ -234,6 +235,7 @@ void NGLScene::paintGL()
   m_globalTransformMatrix.m_m[3][1] = m_modelPos.m_y;
   m_globalTransformMatrix.m_m[3][2] = m_modelPos.m_z;
   // now draw
+  shader->use("nglDiffuseShader");
   for(auto g : m_goals)
   {
     shader->setUniform("Colour",0.0f,1.0f,0.0f,1.0f);
@@ -271,29 +273,42 @@ void NGLScene::paintGL()
   shader->setUniform("Colour",1.0f,0.0f,0.0f,1.0f);
 
   ngl::Transformation t;
-  t.setPosition(-25.0,0.0,25);
-  t.setScale(30.0f,1.0f,30.0f);
+  t.setPosition(-25.0,1.0,25);
+  t.setScale(30.0f,3.0f,30.0f);
   m_bodyTransform=t.getMatrix();
   loadMatricesToShader();
   ngl::VAOPrimitives::instance()->draw("cube");
 
-  t.setPosition(25.0,0.0,25);
-  t.setScale(30.0f,1.0f,30.0f);
+  t.setPosition(25.0,1.0,25);
+  t.setScale(30.0f,3.0f,30.0f);
   m_bodyTransform=t.getMatrix();
   loadMatricesToShader();
   ngl::VAOPrimitives::instance()->draw("cube");
 
-  t.setPosition(-25.0,0.0,-25);
-  t.setScale(30.0f,1.0f,30.0f);
+  t.setPosition(-25.0,1.0,-25);
+  t.setScale(30.0f,3.0f,30.0f);
   m_bodyTransform=t.getMatrix();
   loadMatricesToShader();
   ngl::VAOPrimitives::instance()->draw("cube");
 
-  t.setPosition(25.0,0.0,-25);
-  t.setScale(30.0f,1.0f,30.0f);
+  t.setPosition(25.0,1.0,-25);
+  t.setScale(30.0f,3.0f,30.0f);
   m_bodyTransform=t.getMatrix();
   loadMatricesToShader();
   ngl::VAOPrimitives::instance()->draw("cube");
+
+
+  shader->use("nglColourShader");
+  shader->setUniform("Colour",0.3f,0.3f,0.3f,1.0f);
+  ngl::Mat4 MV;
+  ngl::Mat4 MVP;
+  m_bodyTransform.identity();
+  m_bodyTransform.translate(0,-1,0);
+  MV=  m_bodyTransform*m_globalTransformMatrix*m_cam.getViewMatrix();
+  MVP= MV*m_cam.getVPMatrix();
+
+  shader->setUniform("MVP",MVP);
+  ngl::VAOPrimitives::instance()->draw("grid");
 
 
 }

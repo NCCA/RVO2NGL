@@ -130,6 +130,8 @@ void NGLScene::initializeGL()
   // The final two are near and far clipping planes of 0.5 and 10
   m_cam.setShape(50.0f,720.0f/576.0f,0.05f,350.0f);
   setupSim();
+  ngl::VAOPrimitives::instance()->createTrianglePlane( "grid",600,600,100,100,ngl::Vec3::up());
+
   startTimer(1);
 
 }
@@ -138,6 +140,7 @@ void NGLScene::initializeGL()
 void NGLScene::loadMatricesToShader()
 {
   ngl::ShaderLib *shader=ngl::ShaderLib::instance();
+  shader->use("nglDiffuseShader");
 
   ngl::Mat4 MV;
   ngl::Mat4 MVP;
@@ -201,6 +204,19 @@ void NGLScene::paintGL()
     loadMatricesToShader();
     ngl::VAOPrimitives::instance()->draw("troll");
   }
+
+  shader->use("nglColourShader");
+  shader->setUniform("Colour",0.3f,0.3f,0.3f,1.0f);
+  ngl::Mat4 MV;
+  ngl::Mat4 MVP;
+  m_bodyTransform.identity();
+  m_bodyTransform.translate(0,-1,0);
+  MV=  m_bodyTransform*m_globalTransformMatrix*m_cam.getViewMatrix();
+  MVP= MV*m_cam.getVPMatrix();
+
+  shader->setUniform("MVP",MVP);
+  ngl::VAOPrimitives::instance()->draw("grid");
+
 
 }
 
