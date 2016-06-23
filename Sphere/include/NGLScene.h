@@ -5,6 +5,7 @@
 #include <ngl/Light.h>
 #include <ngl/Transformation.h>
 #include <ngl/Text.h>
+#include <ngl/VAOFactory.h>
 #include <QOpenGLWindow>
 #include <memory>
 #include "RVO.h"
@@ -143,10 +144,13 @@ private:
     std::vector <RVO::Vector3> m_goals;
     void setupSim();
     void setPreferredVelocities();
-    bool reachedGoal()const ;
+    bool reachedGoal() ;
     void timerEvent(QTimerEvent *);
     void loadMatricesToShader();
     bool m_animate=true;
+    void buildVAO();
+    std::unique_ptr<ngl::VertexArrayObject> m_vao;
+
 
 };
 

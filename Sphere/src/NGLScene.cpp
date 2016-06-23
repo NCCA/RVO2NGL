@@ -5,6 +5,7 @@
 #include <ngl/NGLInit.h>
 #include <ngl/ShaderLib.h>
 #include <iostream>
+#include <cmath>
 //----------------------------------------------------------------------------------------------------------------------
 /// @brief the increment for x/y translation with mouse movement
 //----------------------------------------------------------------------------------------------------------------------
@@ -44,7 +45,7 @@ void NGLScene::setupSim()
   /* Specify the global time step of the simulation. */
   m_sim->setTimeStep(0.5f);
   /* Specify the default parameters for agents that are subsequently added. */
-  m_sim->setAgentDefaults(15.0f, 10, 10.0f, 1.0f, 2.0f);
+  m_sim->setAgentDefaults(15.0f, 10, 10.0f, 1.5f, 2.0f);
 
   /* Add agents, specifying their start position, and store their goals on the opposite side of the environment. */
     for (float a = 0; a < M_PI; a += 0.1f)
@@ -78,7 +79,7 @@ void NGLScene::setPreferredVelocities()
     }
 }
 
-bool NGLScene::reachedGoal() const
+bool NGLScene::reachedGoal()
 {
   /* Check if all agents have reached their goals. */
     for (size_t i = 0; i < m_sim->getNumAgents(); ++i)
@@ -88,7 +89,7 @@ bool NGLScene::reachedGoal() const
         return false;
       }
     }
-
+    setupSim();
     return true;
 }
 
@@ -132,7 +133,8 @@ void NGLScene::initializeGL()
   m_cam.setShape(50.0f,720.0f/576.0f,0.05f,350.0f);
   ngl::VAOPrimitives::instance()->createSphere("sphere",1.5,40);
   setupSim();
-  startTimer(0);
+  buildVAO();
+  startTimer(20);
 
 
 }
@@ -176,18 +178,105 @@ void NGLScene::paintGL()
   m_globalTransformMatrix.m_m[3][1] = m_modelPos.m_y;
   m_globalTransformMatrix.m_m[3][2] = m_modelPos.m_z;
   // now draw
-  for (int i = 0; i < static_cast<int>(m_sim->getNumAgents()); ++i)
+  m_vao->bind();
+  for (size_t i = 0; i < m_sim->getNumAgents(); ++i)
   {
     ngl::Transformation t;
     RVO::Vector3 p=m_sim->getAgentPosition(i);
+    RVO::Vector3 v=m_sim->getAgentVelocity(i);
+    RVO::Vector3 next=p+v;
+
+    RVO::Vector3 f=next-p;
+    ngl::Real x=f.x();
+    ngl::Real y=f.y();
+    ngl::Real z=f.z();
+
+    //using spherical geometry we calculate the rotation based on the New Point
+    auto yrot=ngl::degrees(atan2f(x,z))+180.0f; // Now convert from radians to deg
+
+    // Now for the zrot
+    auto r=sqrt(x*x+y*y+z*z);
+    auto xrot=ngl::degrees(asinf(y/r));
+
     t.setPosition(p.x(),p.y(),p.z());
-    t.setScale(0.5f,0.5f,0.5f);
+    t.setScale(1.5f,1.5f,1.5f);
+    t.setRotation(xrot,yrot,0.0f);
+
     m_bodyTransform=t.getMatrix();
     loadMatricesToShader();
-    ngl::VAOPrimitives::instance()->draw("sphere");
+    m_vao->draw();
   }
+  m_vao->unbind();
 
 }
+
+
+
+
+void NGLScene::buildVAO()
+{
+  ngl::Vec3 verts[]=
+  {
+    ngl::Vec3(0,1,1),
+    ngl::Vec3(0,0,-1),
+    ngl::Vec3(-0.5,0,1),
+    ngl::Vec3(0,1,1),
+    ngl::Vec3(0,0,-1),
+    ngl::Vec3(0.5,0,1),
+    ngl::Vec3(0,1,1),
+    ngl::Vec3(0,0,1.5),
+    ngl::Vec3(-0.5,0,1),
+    ngl::Vec3(0,1,1),
+    ngl::Vec3(0,0,1.5),
+    ngl::Vec3(0.5,0,1)
+
+  };
+
+  std::vector <ngl::Vec3> normals;
+  ngl::Vec3 n=ngl::calcNormal(verts[2],verts[1],verts[0]);
+  normals.push_back(n);
+  normals.push_back(n);
+  normals.push_back(n);
+  n=ngl::calcNormal(verts[3],verts[4],verts[5]);
+  normals.push_back(n);
+  normals.push_back(n);
+  normals.push_back(n);
+
+  n=ngl::calcNormal(verts[6],verts[7],verts[8]);
+  normals.push_back(n);
+  normals.push_back(n);
+  normals.push_back(n);
+
+  n=ngl::calcNormal(verts[11],verts[10],verts[9]);
+  normals.push_back(n);
+  normals.push_back(n);
+  normals.push_back(n);
+
+  std::cout<<"sizeof(verts) "<<sizeof(verts)<<" sizeof(ngl::Vec3) "<<sizeof(ngl::Vec3)<<"\n";
+  // create a vao as a series of GL_TRIANGLES
+  m_vao.reset( ngl::VertexArrayObject::createVOA(GL_TRIANGLES));
+  m_vao->bind();
+
+  // in this case we are going to set our data as the vertices above
+
+  m_vao->setData(sizeof(verts),verts[0].m_x);
+  // now we set the attribute pointer to be 0 (as this matches vertIn in our shader)
+
+  m_vao->setVertexAttributePointer(0,3,GL_FLOAT,0,0);
+
+  m_vao->setData(sizeof(verts),normals[0].m_x);
+  // now we set the attribute pointer to be 2 (as this matches normal in our shader)
+
+  m_vao->setVertexAttributePointer(2,3,GL_FLOAT,0,0);
+
+  m_vao->setNumIndices(sizeof(verts)/sizeof(ngl::Vec3));
+
+ // now unbind
+  m_vao->unbind();
+
+
+}
+
 
 //----------------------------------------------------------------------------------------------------------------------
 void NGLScene::mouseMoveEvent (QMouseEvent * _event)
