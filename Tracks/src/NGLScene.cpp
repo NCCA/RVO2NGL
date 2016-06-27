@@ -15,7 +15,7 @@
 //----------------------------------------------------------------------------------------------------------------------
 /// @brief the increment for x/y translation with mouse movement
 //----------------------------------------------------------------------------------------------------------------------
-constexpr float INCREMENT=0.01f;
+constexpr float INCREMENT=0.5f;
 //----------------------------------------------------------------------------------------------------------------------
 /// @brief the increment for the wheel zoom
 //----------------------------------------------------------------------------------------------------------------------
@@ -138,7 +138,7 @@ void NGLScene::setPreferredVelocities()
     auto dist =  rng->randomNumber(0.0001f );
 
     m_sim->setAgentPrefVelocity(i, m_sim->getAgentPrefVelocity(i) +
-                              dist * RVO::Vector2(std::cosf(angle), std::sinf(angle)));
+                              dist * RVO::Vector2(std::cos(angle), std::sin(angle)));
   }
 }
 
@@ -173,11 +173,12 @@ void NGLScene::timerEvent(QTimerEvent *)
 void NGLScene::setColourArray(size_t _numColours)
 {
   ngl::Random *rng=ngl::Random::instance();
-  for(auto i=0; i<_numColours; ++i)
+  rng->setSeed();
+  for(size_t i=0; i<_numColours; ++i)
   {
-      m_colours.push_back(ngl::Vec4(rng->randomPositiveNumber(1.0f)+0.2,
-                          rng->randomPositiveNumber(1.0f)+0.1,
-                          rng->randomPositiveNumber(1.0f)+0.2,
+      m_colours.push_back(ngl::Vec4(rng->randomPositiveNumber(1.0f),
+                          rng->randomPositiveNumber(1.0f),
+                          rng->randomPositiveNumber(1.0f),
                           1.0f));
   }
 }
@@ -211,7 +212,7 @@ void NGLScene::initializeGL()
   // The final two are near and far clipping planes of 0.5 and 10
   m_cam.setShape(50.0f,720.0f/576.0f,0.05f,350.0f);
   setupSim();
-  ngl::VAOPrimitives::instance()->createTrianglePlane( "grid",200,200,10,10,ngl::Vec3::up());
+  ngl::VAOPrimitives::instance()->createTrianglePlane( "grid",250,250,10,10,ngl::Vec3::up());
   setColourArray(m_sim->getNumAgents());
 
   startTimer(1);
