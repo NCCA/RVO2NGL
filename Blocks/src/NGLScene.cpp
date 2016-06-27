@@ -178,36 +178,8 @@ void NGLScene::initializeGL()
   // now to load the shader and set the values
    // grab an instance of shader manager
    ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-   // we are creating a shader called Phong to save typos
-   // in the code create some constexpr
-   constexpr auto shaderProgram="nglDiffuseShader";
-   constexpr auto vertexShader="nglDiffuseVertex";
-   constexpr auto fragShader="nglDiffuseFragment";
-   // create the shader program
-   shader->createShaderProgram(shaderProgram);
-   // now we are going to create empty shaders for Frag and Vert
-   shader->attachShader(vertexShader,ngl::ShaderType::VERTEX);
-   shader->attachShader(fragShader,ngl::ShaderType::FRAGMENT);
-   // attach the source
-   shader->loadShaderSource(vertexShader,"shaders/DiffuseVertex.glsl");
-   shader->loadShaderSource(fragShader,"shaders/DiffuseFragment.glsl");
-   // compile the shaders
-   shader->compileShader(vertexShader);
-   shader->compileShader(fragShader);
-   // add them to the program
-   shader->attachShaderToProgram(shaderProgram,vertexShader);
-   shader->attachShaderToProgram(shaderProgram,fragShader);
 
-   shader->bindAttribute("nglDiffuseShader",0,"inVert");
-   shader->bindAttribute("nglDiffuseShader",2,"inNormal");
-
-   // now we have associated that data we can link the shader
-   shader->linkProgramObject(shaderProgram);
-   // and make it active ready to load values
-   (*shader)[shaderProgram]->use();
-
-
-  //(*shader)["nglDiffuseShader"]->use();
+  (*shader)["nglDiffuseShader"]->use();
   shader->setShaderParam4f("Colour",1,1,0,1);
   shader->setShaderParam3f("lightPos",1,1,1);
   shader->setShaderParam4f("lightDiffuse",1,1,1,1);

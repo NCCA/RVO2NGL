@@ -215,9 +215,6 @@ void NGLScene::initializeGL()
   ngl::VAOPrimitives::instance()->createTrianglePlane( "grid",250,250,10,10,ngl::Vec3::up());
   setColourArray(m_sim->getNumAgents());
 
-  startTimer(1);
-
-
  // we are creating a shader called Phong to save typos
  // in the code create some constexpr
  constexpr auto shaderProgram="Track";
@@ -241,6 +238,9 @@ void NGLScene::initializeGL()
  shader->linkProgramObject(shaderProgram);
  // and make it active ready to load values
  (*shader)[shaderProgram]->use();
+
+ startTimer(1);
+
 
 }
 
@@ -275,8 +275,7 @@ void NGLScene::paintGL()
   // create the rotation matrices
   rotX.rotateX(m_spinXFace);
   rotY.rotateY(m_spinYFace);
-  std::cout<<rotX<<'\n'<<rotY<<'\n';
-  std::cout<<m_spinXFace<<' '<<m_spinYFace<<'\n';
+
   // multiply the rotations
   m_globalTransformMatrix=rotY*rotX;
   // add the translations
@@ -295,7 +294,6 @@ void NGLScene::paintGL()
     m_bodyTransform=t.getMatrix();
     loadMatricesToShader();
     ngl::VAOPrimitives::instance()->draw("cube");
-
   }
 
   for (size_t i = 0; i < m_sim->getNumAgents(); ++i)
