@@ -50,13 +50,13 @@ void NGLScene::setupSim()
   /* Add agents, specifying their start position, and store their goals on the opposite side of the environment. */
     for (float a = 0; a < M_PI; a += 0.1f)
     {
-      const float z = 100.0f * std::cosf(a);
-      const float r = 100.0f * std::sinf(a);
+      const float z = 100.0f * std::cos(a);
+      const float r = 100.0f * std::sin(a);
 
       for (size_t i = 0; i < r / 2.5f; ++i)
       {
-        const float x = r * std::cosf(i * 2.0f * M_PI / (r / 2.5f));
-        const float y = r * std::sinf(i * 2.0f * M_PI / (r / 2.5f));
+        const float x = r * std::cos(i * 2.0f * M_PI / (r / 2.5f));
+        const float y = r * std::sin(i * 2.0f * M_PI / (r / 2.5f));
 
         m_sim->addAgent(RVO::Vector3(x, y, z));
         m_goals.push_back(-m_sim->getAgentPosition(m_sim->getNumAgents() - 1));

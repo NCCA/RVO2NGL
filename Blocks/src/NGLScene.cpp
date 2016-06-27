@@ -135,7 +135,7 @@ void NGLScene::setPreferredVelocities()
     auto dist =  rng->randomNumber(0.0001f );
 
     m_sim->setAgentPrefVelocity(i, m_sim->getAgentPrefVelocity(i) +
-                              dist * RVO::Vector2(std::cosf(angle), std::sinf(angle)));
+                              dist * RVO::Vector2(std::cos(angle), std::sin(angle)));
   }
 }
 
