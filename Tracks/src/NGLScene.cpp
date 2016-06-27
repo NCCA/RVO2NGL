@@ -138,7 +138,7 @@ void NGLScene::setPreferredVelocities()
     auto dist =  rng->randomNumber(0.0001f );
 
     m_sim->setAgentPrefVelocity(i, m_sim->getAgentPrefVelocity(i) +
-                              dist * RVO::Vector2(std::cosf(angle), std::sinf(angle)));
+                              dist * RVO::Vector2(std::cos(angle), std::sin(angle)));
   }
 }
 
@@ -202,14 +202,14 @@ void NGLScene::initializeGL()
   // Now we will create a basic Camera from the graphics library
   // This is a static camera so it only needs to be set once
   // First create Values for the camera position
-  ngl::Vec3 from(0,1,10);
+  ngl::Vec3 from(0,2,10);
   ngl::Vec3 to(0,0,0);
   ngl::Vec3 up(0,1,0);
   // now load to our new camera
   m_cam.set(from,to,up);
   // set the shape using FOV 45 Aspect Ratio based on Width and Height
   // The final two are near and far clipping planes of 0.5 and 10
-  m_cam.setShape(50.0f,720.0f/576.0f,0.05f,350.0f);
+  m_cam.setShape(45.0f,720.0f/576.0f,0.05f,350.0f);
   setupSim();
   ngl::VAOPrimitives::instance()->createTrianglePlane( "grid",200,200,10,10,ngl::Vec3::up());
   setColourArray(m_sim->getNumAgents());
@@ -256,8 +256,8 @@ void NGLScene::loadMatricesToShader()
   MVP= MV*m_cam.getVPMatrix();
   normalMatrix=MV;
   normalMatrix.inverse();
-  shader->setRegisteredUniform("MVP",MVP);
-  shader->setRegisteredUniform("normalMatrix",normalMatrix);
+  shader->setUniform("MVP",MVP);
+  shader->setUniform("normalMatrix",normalMatrix);
 }
 
 void NGLScene::paintGL()
@@ -267,7 +267,6 @@ void NGLScene::paintGL()
   glViewport(0,0,m_width,m_height);
   // grab an instance of the shader manager
   ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-  (*shader)["nglDiffuseShader"]->use();
 
   // Rotation based on the mouse position for our global transform
   ngl::Mat4 rotX;
@@ -275,6 +274,8 @@ void NGLScene::paintGL()
   // create the rotation matrices
   rotX.rotateX(m_spinXFace);
   rotY.rotateY(m_spinYFace);
+  std::cout<<rotX<<'\n'<<rotY<<'\n';
+  std::cout<<m_spinXFace<<' '<<m_spinYFace<<'\n';
   // multiply the rotations
   m_globalTransformMatrix=rotY*rotX;
   // add the translations
@@ -369,7 +370,7 @@ void NGLScene::paintGL()
   vao->setData(ngl::MultiBufferVAO::VertexData(m_tracks.size()*sizeof(ngl::Vec3),m_tracks[0].m_x));
   vao->setVertexAttributePointer(0,3,GL_FLOAT,0,0);
 
-  vao->setData(ngl::MultiBufferVAO::VertexData(m_perVertColour.size()*sizeof(ngl::Vec3),m_perVertColour[0].m_r));
+  vao->setData(ngl::MultiBufferVAO::VertexData(m_perVertColour.size()*sizeof(ngl::Vec3),m_perVertColour[0].m_x));
   vao->setVertexAttributePointer(1,3,GL_FLOAT,0,0);
   //glVertexAttrib4f(1,1,1,0,1);
 
