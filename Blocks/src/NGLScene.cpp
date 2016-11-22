@@ -9,14 +9,7 @@
 #include <ngl/ShaderLib.h>
 
 #include <iostream>
-//----------------------------------------------------------------------------------------------------------------------
-/// @brief the increment for x/y translation with mouse movement
-//----------------------------------------------------------------------------------------------------------------------
-constexpr float INCREMENT=0.01f;
-//----------------------------------------------------------------------------------------------------------------------
-/// @brief the increment for the wheel zoom
-//----------------------------------------------------------------------------------------------------------------------
-constexpr float ZOOM=2.0f;
+
 
 NGLScene::NGLScene()
 {
@@ -30,16 +23,12 @@ NGLScene::~NGLScene()
   std::cout<<"Shutting down NGL, removing VAO's and Shaders\n";
 }
 
-void NGLScene::resizeGL(QResizeEvent *_event)
-{
-  m_width=_event->size().width()*devicePixelRatio();
-  m_height=_event->size().height()*devicePixelRatio();
-}
+
 
 void NGLScene::resizeGL(int _w , int _h)
 {
-  m_width=_w*devicePixelRatio();
-  m_height=_h*devicePixelRatio();
+  m_win.width=_w*devicePixelRatio();
+  m_win.height=_h*devicePixelRatio();
 }
 
 void NGLScene::setupSim()
@@ -221,7 +210,7 @@ void NGLScene::paintGL()
 {
   // clear the screen and depth buffer
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glViewport(0,0,m_width,m_height);
+  glViewport(0,0,m_win.width,m_win.height);
   // grab an instance of the shader manager
   ngl::ShaderLib *shader=ngl::ShaderLib::instance();
   (*shader)["nglDiffuseShader"]->use();
@@ -230,8 +219,8 @@ void NGLScene::paintGL()
   ngl::Mat4 rotX;
   ngl::Mat4 rotY;
   // create the rotation matrices
-  rotX.rotateX(m_spinXFace);
-  rotY.rotateY(m_spinYFace);
+  rotX.rotateX(m_win.spinXFace);
+  rotY.rotateY(m_win.spinYFace);
   // multiply the rotations
   m_globalTransformMatrix=rotY*rotX;
   // add the translations
@@ -317,90 +306,6 @@ void NGLScene::paintGL()
 
 }
 
-//----------------------------------------------------------------------------------------------------------------------
-void NGLScene::mouseMoveEvent (QMouseEvent * _event)
-{
-  // note the method buttons() is the button state when event was called
-  // this is different from button() which is used to check which button was
-  // pressed when the mousePress/Release event is generated
-  if(m_rotate && _event->buttons() == Qt::LeftButton)
-  {
-    int diffx=_event->x()-m_origX;
-    int diffy=_event->y()-m_origY;
-    m_spinXFace += (float) 0.5f * diffy;
-    m_spinYFace += (float) 0.5f * diffx;
-    m_origX = _event->x();
-    m_origY = _event->y();
-    update();
-
-  }
-        // right mouse translate code
-  else if(m_translate && _event->buttons() == Qt::RightButton)
-  {
-    int diffX = (int)(_event->x() - m_origXPos);
-    int diffY = (int)(_event->y() - m_origYPos);
-    m_origXPos=_event->x();
-    m_origYPos=_event->y();
-    m_modelPos.m_x += INCREMENT * diffX;
-    m_modelPos.m_y -= INCREMENT * diffY;
-    update();
-
-   }
-}
-
-
-//----------------------------------------------------------------------------------------------------------------------
-void NGLScene::mousePressEvent ( QMouseEvent * _event)
-{
-  // this method is called when the mouse button is pressed in this case we
-  // store the value where the maouse was clicked (x,y) and set the Rotate flag to true
-  if(_event->button() == Qt::LeftButton)
-  {
-    m_origX = _event->x();
-    m_origY = _event->y();
-    m_rotate =true;
-  }
-  // right mouse translate mode
-  else if(_event->button() == Qt::RightButton)
-  {
-    m_origXPos = _event->x();
-    m_origYPos = _event->y();
-    m_translate=true;
-  }
-
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-void NGLScene::mouseReleaseEvent ( QMouseEvent * _event )
-{
-  // this event is called when the mouse button is released
-  // we then set Rotate to false
-  if (_event->button() == Qt::LeftButton)
-  {
-    m_rotate=false;
-  }
-        // right mouse translate mode
-  if (_event->button() == Qt::RightButton)
-  {
-    m_translate=false;
-  }
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-void NGLScene::wheelEvent(QWheelEvent *_event)
-{
-
-  // check the diff of the wheel position (0 means no change)
-  if(_event->delta() > 0)
-  {
-    m_modelPos.m_z+=ZOOM;
-  }
-  else if(_event->delta() <0 )
-  {
-    m_modelPos.m_z-=ZOOM;
-  }
-  update();
-}
 //----------------------------------------------------------------------------------------------------------------------
 
 void NGLScene::keyPressEvent(QKeyEvent *_event)

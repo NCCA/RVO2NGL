@@ -6,14 +6,7 @@
 #include <ngl/ShaderLib.h>
 #include <iostream>
 #include <cmath>
-//----------------------------------------------------------------------------------------------------------------------
-/// @brief the increment for x/y translation with mouse movement
-//----------------------------------------------------------------------------------------------------------------------
-constexpr float INCREMENT=1.0f;
-//----------------------------------------------------------------------------------------------------------------------
-/// @brief the increment for the wheel zoom
-//----------------------------------------------------------------------------------------------------------------------
-constexpr float ZOOM=2.0f;
+
 
 NGLScene::NGLScene()
 {
@@ -27,16 +20,11 @@ NGLScene::~NGLScene()
   std::cout<<"Shutting down NGL, removing VAO's and Shaders\n";
 }
 
-void NGLScene::resizeGL(QResizeEvent *_event)
+void NGLScene::resizeGL( int _w, int _h )
 {
-  m_width=_event->size().width()*devicePixelRatio();
-  m_height=_event->size().height()*devicePixelRatio();
-}
-
-void NGLScene::resizeGL(int _w , int _h)
-{
-  m_width=_w*devicePixelRatio();
-  m_height=_h*devicePixelRatio();
+  m_cam.setShape( 45.0f, static_cast<float>( _w ) / _h, 0.05f, 350.0f );
+  m_win.width  = static_cast<int>( _w * devicePixelRatio() );
+  m_win.height = static_cast<int>( _h * devicePixelRatio() );
 }
 
 void NGLScene::setupSim()
@@ -55,8 +43,8 @@ void NGLScene::setupSim()
 
       for (size_t i = 0; i < r / 2.5f; ++i)
       {
-        const float x = r * std::cos(i * 2.0f * M_PI / (r / 2.5f));
-        const float y = r * std::sin(i * 2.0f * M_PI / (r / 2.5f));
+        const float x = r * std::cosf(i * 2.0f * M_PI / (r / 2.5f));
+        const float y = r * std::sinf(i * 2.0f * M_PI / (r / 2.5f));
 
         m_sim->addAgent(RVO::Vector3(x, y, z));
         m_goals.push_back(-m_sim->getAgentPosition(m_sim->getNumAgents() - 1));
@@ -110,7 +98,7 @@ void NGLScene::initializeGL()
   // be done once we have a valid GL context but before we call any GL commands. If we dont do
   // this everything will crash
   ngl::NGLInit::instance();
-  glViewport(0,0,m_width,m_height);
+  glViewport(0,0,m_win.width,m_win.height);
   glClearColor(1.0f, 1.0f, 1.0f, 1.0f);			   // Grey Background
   // enable depth testing for drawing
   glEnable(GL_DEPTH_TEST);
@@ -161,7 +149,7 @@ void NGLScene::paintGL()
 {
   // clear the screen and depth buffer
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glViewport(0,0,m_width,m_height);
+  glViewport(0,0,m_win.width,m_win.height);
   // grab an instance of the shader manager
   ngl::ShaderLib *shader=ngl::ShaderLib::instance();
   (*shader)["nglDiffuseShader"]->use();
@@ -170,8 +158,8 @@ void NGLScene::paintGL()
   ngl::Mat4 rotX;
   ngl::Mat4 rotY;
   // create the rotation matrices
-  rotX.rotateX(m_spinXFace);
-  rotY.rotateY(m_spinYFace);
+  rotX.rotateX(m_win.spinXFace);
+  rotY.rotateY(m_win.spinYFace);
   // multiply the rotations
   m_globalTransformMatrix=rotY*rotX;
   // add the translations
@@ -196,7 +184,7 @@ void NGLScene::paintGL()
     auto yrot=ngl::degrees(atan2f(x,z))+180.0f; // Now convert from radians to deg
 
     // Now for the zrot
-    auto r=sqrt(x*x+y*y+z*z);
+    auto r=sqrtf(x*x+y*y+z*z);
     auto xrot=ngl::degrees(asinf(y/r));
 
     t.setPosition(p.x(),p.y(),p.z());
@@ -255,17 +243,17 @@ void NGLScene::buildVAO()
 
   std::cout<<"sizeof(verts) "<<sizeof(verts)<<" sizeof(ngl::Vec3) "<<sizeof(ngl::Vec3)<<"\n";
   // create a vao as a series of GL_TRIANGLES
-  m_vao.reset( ngl::VertexArrayObject::createVOA(GL_TRIANGLES));
+  m_vao.reset( ngl::VAOFactory::createVAO("multiBufferVAO",GL_TRIANGLES));
   m_vao->bind();
 
   // in this case we are going to set our data as the vertices above
 
-  m_vao->setData(sizeof(verts),verts[0].m_x);
+  m_vao->setData(ngl::AbstractVAO::VertexData( sizeof(verts),verts[0].m_x));
   // now we set the attribute pointer to be 0 (as this matches vertIn in our shader)
 
   m_vao->setVertexAttributePointer(0,3,GL_FLOAT,0,0);
 
-  m_vao->setData(sizeof(verts),normals[0].m_x);
+  m_vao->setData(ngl::AbstractVAO::VertexData(sizeof(verts),normals[0].m_x));
   // now we set the attribute pointer to be 2 (as this matches normal in our shader)
 
   m_vao->setVertexAttributePointer(2,3,GL_FLOAT,0,0);
@@ -279,90 +267,6 @@ void NGLScene::buildVAO()
 }
 
 
-//----------------------------------------------------------------------------------------------------------------------
-void NGLScene::mouseMoveEvent (QMouseEvent * _event)
-{
-  // note the method buttons() is the button state when event was called
-  // this is different from button() which is used to check which button was
-  // pressed when the mousePress/Release event is generated
-  if(m_rotate && _event->buttons() == Qt::LeftButton)
-  {
-    int diffx=_event->x()-m_origX;
-    int diffy=_event->y()-m_origY;
-    m_spinXFace += (float) 0.5f * diffy;
-    m_spinYFace += (float) 0.5f * diffx;
-    m_origX = _event->x();
-    m_origY = _event->y();
-    update();
-
-  }
-        // right mouse translate code
-  else if(m_translate && _event->buttons() == Qt::RightButton)
-  {
-    int diffX = (int)(_event->x() - m_origXPos);
-    int diffY = (int)(_event->y() - m_origYPos);
-    m_origXPos=_event->x();
-    m_origYPos=_event->y();
-    m_modelPos.m_x += INCREMENT * diffX;
-    m_modelPos.m_y -= INCREMENT * diffY;
-    update();
-
-   }
-}
-
-
-//----------------------------------------------------------------------------------------------------------------------
-void NGLScene::mousePressEvent ( QMouseEvent * _event)
-{
-  // this method is called when the mouse button is pressed in this case we
-  // store the value where the maouse was clicked (x,y) and set the Rotate flag to true
-  if(_event->button() == Qt::LeftButton)
-  {
-    m_origX = _event->x();
-    m_origY = _event->y();
-    m_rotate =true;
-  }
-  // right mouse translate mode
-  else if(_event->button() == Qt::RightButton)
-  {
-    m_origXPos = _event->x();
-    m_origYPos = _event->y();
-    m_translate=true;
-  }
-
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-void NGLScene::mouseReleaseEvent ( QMouseEvent * _event )
-{
-  // this event is called when the mouse button is released
-  // we then set Rotate to false
-  if (_event->button() == Qt::LeftButton)
-  {
-    m_rotate=false;
-  }
-        // right mouse translate mode
-  if (_event->button() == Qt::RightButton)
-  {
-    m_translate=false;
-  }
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-void NGLScene::wheelEvent(QWheelEvent *_event)
-{
-
-  // check the diff of the wheel position (0 means no change)
-  if(_event->delta() > 0)
-  {
-    m_modelPos.m_z+=ZOOM;
-  }
-  else if(_event->delta() <0 )
-  {
-    m_modelPos.m_z-=ZOOM;
-  }
-  update();
-}
 //----------------------------------------------------------------------------------------------------------------------
 
 void NGLScene::keyPressEvent(QKeyEvent *_event)
