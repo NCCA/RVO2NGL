@@ -185,9 +185,9 @@ void NGLScene::initializeGL()
   glEnable(GL_MULTISAMPLE);
   ngl::ShaderLib *shader=ngl::ShaderLib::instance();
   (*shader)["nglDiffuseShader"]->use();
-  shader->setShaderParam4f("Colour",1,1,0,1);
-  shader->setShaderParam3f("lightPos",1,1,1);
-  shader->setShaderParam4f("lightDiffuse",1,1,1,1);
+  shader->setUniform("Colour",1.0f,1.0f,0.0f,1.0f);
+  shader->setUniform("lightPos",1.0f,1.0f,1.0f);
+  shader->setUniform("lightDiffuse",1.0f,1.0f,1.0f,1.0f);
   // Now we will create a basic Camera from the graphics library
   // This is a static camera so it only needs to be set once
   // First create Values for the camera position
@@ -241,8 +241,10 @@ void NGLScene::loadMatricesToShader()
   ngl::Mat4 MVP;
   ngl::Mat3 normalMatrix;
 
-  MV=  m_bodyTransform*m_globalTransformMatrix*m_cam.getViewMatrix();
-  MVP= MV*m_cam.getVPMatrix();
+  MV= m_cam.getViewMatrix()*
+      m_globalTransformMatrix*
+      m_bodyTransform;
+  MVP= m_cam.getVPMatrix()*MV;
   normalMatrix=MV;
   normalMatrix.inverse();
   shader->setUniform("MVP",MVP);
@@ -342,8 +344,11 @@ void NGLScene::paintGL()
   ngl::Mat4 MVP;
   m_bodyTransform.identity();
   m_bodyTransform.translate(0,-1,0);
-  MV=  m_bodyTransform*m_globalTransformMatrix*m_cam.getViewMatrix();
-  MVP= MV*m_cam.getVPMatrix();
+  MV= m_cam.getViewMatrix() *
+      m_globalTransformMatrix *
+      m_bodyTransform;
+
+  MVP= m_cam.getVPMatrix()*MV;
 
   shader->setUniform("MVP",MVP);
   ngl::VAOPrimitives::instance()->draw("grid");
@@ -363,8 +368,10 @@ void NGLScene::paintGL()
 
   vao->setNumIndices(m_tracks.size());
   shader->use("Track");
-  MV=  m_bodyTransform*m_globalTransformMatrix*m_cam.getViewMatrix();
-  MVP= MV*m_cam.getVPMatrix();
+  MV= m_cam.getViewMatrix() *
+      m_globalTransformMatrix*
+      m_bodyTransform;
+  MVP= m_cam.getVPMatrix()*MV;
 
   shader->setUniform("MVP",MVP);
   glPointSize(2.0);
