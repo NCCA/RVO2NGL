@@ -22,7 +22,7 @@ NGLScene::~NGLScene()
 
 void NGLScene::resizeGL( int _w, int _h )
 {
-  m_cam.setShape( 45.0f, static_cast<float>( _w ) / _h, 0.05f, 350.0f );
+  m_project=ngl::perspective( 45.0f, static_cast<float>( _w ) / _h, 0.05f, 350.0f );
   m_win.width  = static_cast<int>( _w * devicePixelRatio() );
   m_win.height = static_cast<int>( _h * devicePixelRatio() );
 }
@@ -146,9 +146,9 @@ void NGLScene::setupSim()
 void NGLScene::buildRoadmap()
 {
   /* Connect the m_roadmap vertices by edges if mutually visible. */
-  for (int i = 0; i < static_cast<int>(m_roadmap.size()); ++i)
+  for (size_t i = 0; i < m_roadmap.size(); ++i)
   {
-    for (int j = 0; j < static_cast<int>(m_roadmap.size()); ++j)
+    for (size_t j = 0; j < m_roadmap.size(); ++j)
     {
       if (m_sim->queryVisibility(m_roadmap[i].position, m_roadmap[j].position, m_sim->getAgentRadius(0)))
       {
@@ -167,7 +167,7 @@ void NGLScene::buildRoadmap()
    * Compute the distance to each of the four goals (the first four vertices)
    * for all vertices using Dijkstra's algorithm.
    */
-  for (int i = 0; i < 4; ++i)
+  for (size_t i = 0; i < 4; ++i)
   {
     std::multimap<float, int> Q;
     std::vector<std::multimap<float, int>::iterator> posInQ(m_roadmap.size(), Q.end());
@@ -177,13 +177,13 @@ void NGLScene::buildRoadmap()
 
     while (!Q.empty())
     {
-      const int u = Q.begin()->second;
+      const size_t u = Q.begin()->second;
       Q.erase(Q.begin());
       posInQ[u] = Q.end();
 
-      for (int j = 0; j < static_cast<int>(m_roadmap[u].neighbors.size()); ++j)
+      for (size_t j = 0; j < m_roadmap[u].neighbors.size(); ++j)
       {
-        const int v = m_roadmap[u].neighbors[j];
+        const size_t v = m_roadmap[u].neighbors[j];
         const float dist_uv = RVO::abs(m_roadmap[v].position - m_roadmap[u].position);
 
         if (m_roadmap[v].distToGoal[i] > m_roadmap[u].distToGoal[i] + dist_uv)
@@ -314,10 +314,10 @@ void NGLScene::initializeGL()
   ngl::Vec3 to(0,0,0);
   ngl::Vec3 up(0,1,0);
   // now load to our new camera
-  m_cam.set(from,to,up);
+  m_view=ngl::lookAt(from,to,up);
   // set the shape using FOV 45 Aspect Ratio based on Width and Height
   // The final two are near and far clipping planes of 0.5 and 10
-  m_cam.setShape(50.0f,720.0f/576.0f,0.05f,350.0f);
+  m_project=ngl::perspective(50.0f,720.0f/576.0f,0.05f,350.0f);
   setupSim();
   buildRoadmap();
   ngl::VAOPrimitives::instance()->createTrianglePlane( "grid",200,200,10,10,ngl::Vec3::up());
@@ -335,10 +335,10 @@ void NGLScene::loadMatricesToShader()
   ngl::Mat4 MVP;
   ngl::Mat3 normalMatrix;
 
-  MV= m_cam.getViewMatrix() *
+  MV= m_view *
       m_globalTransformMatrix*
       m_bodyTransform;
-  MVP= m_cam.getVPMatrix()*MV;
+  MVP= m_project*MV;
   normalMatrix=MV;
   normalMatrix.inverse().transpose();
   shader->setUniform("MVP",MVP);
@@ -423,10 +423,10 @@ void NGLScene::paintGL()
   ngl::Mat4 MVP;
   m_bodyTransform.identity();
   m_bodyTransform.translate(0,-1,0);
-  MV= m_cam.getViewMatrix() *
+  MV= m_view *
       m_globalTransformMatrix *
       m_bodyTransform;
-  MVP= m_cam.getVPMatrix()*MV;
+  MVP= m_project*MV;
 
   shader->setUniform("MVP",MVP);
   ngl::VAOPrimitives::instance()->draw("grid");

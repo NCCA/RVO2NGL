@@ -22,7 +22,7 @@ NGLScene::~NGLScene()
 
 void NGLScene::resizeGL( int _w, int _h )
 {
-  m_cam.setShape( 45.0f, static_cast<float>( _w ) / _h, 0.05f, 350.0f );
+  m_view=ngl::perspective( 45.0f, static_cast<float>( _w ) / _h, 0.05f, 350.0f );
   m_win.width  = static_cast<int>( _w * devicePixelRatio() );
   m_win.height = static_cast<int>( _h * devicePixelRatio() );
 }
@@ -116,10 +116,10 @@ void NGLScene::initializeGL()
   ngl::Vec3 to(0,0,0);
   ngl::Vec3 up(0,1,0);
   // now load to our new camera
-  m_cam.set(from,to,up);
+  m_view=ngl::lookAt(from,to,up);
   // set the shape using FOV 45 Aspect Ratio based on Width and Height
   // The final two are near and far clipping planes of 0.5 and 10
-  m_cam.setShape(50.0f,720.0f/576.0f,0.05f,350.0f);
+  m_project=ngl::perspective(50.0f,720.0f/576.0f,0.05f,350.0f);
   ngl::VAOPrimitives::instance()->createSphere("sphere",1.5,40);
   setupSim();
   buildVAO();
@@ -137,10 +137,10 @@ void NGLScene::loadMatricesToShader()
   ngl::Mat4 MVP;
   ngl::Mat3 normalMatrix;
 
-  MV= m_cam.getViewMatrix() *
+  MV= m_view *
       m_globalTransformMatrix *
       m_bodyTransform ;
-  MVP= m_cam.getVPMatrix()*MV;
+  MVP= m_project*MV;
   normalMatrix=MV;
   normalMatrix.inverse().transpose();
   shader->setUniform("MVP",MVP);
@@ -206,7 +206,7 @@ void NGLScene::paintGL()
 
 void NGLScene::buildVAO()
 {
-  ngl::Vec3 verts[]=
+  std::vector<ngl::Vec3> verts=
   {
     ngl::Vec3(0,1,1),
     ngl::Vec3(0,0,-1),
@@ -222,53 +222,49 @@ void NGLScene::buildVAO()
     ngl::Vec3(0.5,0,1)
 
   };
-
-  std::vector <ngl::Vec3> normals;
+  std::cout<<"Initial "<<verts.size()<<'\n';
   ngl::Vec3 n=ngl::calcNormal(verts[2],verts[1],verts[0]);
-  normals.push_back(n);
-  normals.push_back(n);
-  normals.push_back(n);
+  verts.push_back(n);
+  verts.push_back(n);
+  verts.push_back(n);
   n=ngl::calcNormal(verts[3],verts[4],verts[5]);
-  normals.push_back(n);
-  normals.push_back(n);
-  normals.push_back(n);
+  verts.push_back(n);
+  verts.push_back(n);
+  verts.push_back(n);
 
   n=ngl::calcNormal(verts[6],verts[7],verts[8]);
-  normals.push_back(n);
-  normals.push_back(n);
-  normals.push_back(n);
+  verts.push_back(n);
+  verts.push_back(n);
+  verts.push_back(n);
 
   n=ngl::calcNormal(verts[11],verts[10],verts[9]);
-  normals.push_back(n);
-  normals.push_back(n);
-  normals.push_back(n);
+  verts.push_back(n);
+  verts.push_back(n);
+  verts.push_back(n);
+
 
   std::cout<<"sizeof(verts) "<<sizeof(verts)<<" sizeof(ngl::Vec3) "<<sizeof(ngl::Vec3)<<"\n";
   // create a vao as a series of GL_TRIANGLES
-  m_vao.reset( ngl::VAOFactory::createVAO("multiBufferVAO",GL_TRIANGLES));
+  m_vao=ngl::VAOFactory::createVAO(ngl::simpleVAO,GL_TRIANGLES);
   m_vao->bind();
 
   // in this case we are going to set our data as the vertices above
-
-  m_vao->setData(ngl::AbstractVAO::VertexData( sizeof(verts),verts[0].m_x));
+  m_vao->setData(ngl::SimpleVAO::VertexData(verts.size()*sizeof(ngl::Vec3),verts[0].m_x));
   // now we set the attribute pointer to be 0 (as this matches vertIn in our shader)
 
   m_vao->setVertexAttributePointer(0,3,GL_FLOAT,0,0);
 
-  m_vao->setData(ngl::AbstractVAO::VertexData(sizeof(verts),normals[0].m_x));
-  // now we set the attribute pointer to be 2 (as this matches normal in our shader)
-
-  m_vao->setVertexAttributePointer(2,3,GL_FLOAT,0,0);
-
-  m_vao->setNumIndices(sizeof(verts)/sizeof(ngl::Vec3));
+  // now we set the attribute pointer to be 1 (as this matches normal in our shader)
+  // as we cast to ngl::Real for offset use 12 * 3 (as in x,y,z is 3 floats)
+  m_vao->setVertexAttributePointer(1,3,GL_FLOAT,0,12*3);
+  // divide by 2 as we have both verts and normals
+  m_vao->setNumIndices(verts.size()/2);
 
  // now unbind
   m_vao->unbind();
 
 
 }
-
-
 //----------------------------------------------------------------------------------------------------------------------
 
 void NGLScene::keyPressEvent(QKeyEvent *_event)

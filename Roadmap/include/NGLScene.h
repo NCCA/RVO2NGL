@@ -1,6 +1,5 @@
 #ifndef NGLSCENE_H_
 #define NGLSCENE_H_
-#include <ngl/Camera.h>
 #include <ngl/Transformation.h>
 #include <ngl/Text.h>
 #include <QOpenGLWindow>
@@ -84,7 +83,8 @@ private:
      //----------------------------------------------------------------------------------------------------------------------
     /// @brief Our Camera
     //----------------------------------------------------------------------------------------------------------------------
-    ngl::Camera m_cam;
+    ngl::Mat4 m_view;
+    ngl::Mat4 m_project;
     //----------------------------------------------------------------------------------------------------------------------
     /// @brief body transform matrix
     //----------------------------------------------------------------------------------------------------------------------
@@ -112,7 +112,7 @@ private:
     class RoadmapVertex {
     public:
       RVO::Vector2 position;
-      std::vector<int> neighbors;
+      std::vector<size_t> neighbors;
       std::vector<float> distToGoal;
     };
 

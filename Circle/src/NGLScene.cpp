@@ -21,7 +21,7 @@ NGLScene::~NGLScene()
 
 void NGLScene::resizeGL( int _w, int _h )
 {
-  m_cam.setShape( 45.0f, static_cast<float>( _w ) / _h, 0.05f, 350.0f );
+  m_project=ngl::perspective( 45.0f, static_cast<float>( _w ) / _h, 0.05f, 350.0f );
   m_win.width  = static_cast<int>( _w * devicePixelRatio() );
   m_win.height = static_cast<int>( _h * devicePixelRatio() );
 }
@@ -113,10 +113,10 @@ void NGLScene::initializeGL()
   ngl::Vec3 to(0,0,0);
   ngl::Vec3 up(0,1,0);
   // now load to our new camera
-  m_cam.set(from,to,up);
+  m_view=ngl::lookAt(from,to,up);
   // set the shape using FOV 45 Aspect Ratio based on Width and Height
   // The final two are near and far clipping planes of 0.5 and 10
-  m_cam.setShape(50.0f,720.0f/576.0f,0.05f,350.0f);
+  m_project=ngl::perspective(50.0f,720.0f/576.0f,0.05f,350.0f);
   setupSim();
   ngl::VAOPrimitives::instance()->createTrianglePlane( "grid",600,600,100,100,ngl::Vec3::up());
 
@@ -134,12 +134,12 @@ void NGLScene::loadMatricesToShader()
   ngl::Mat4 MVP;
   ngl::Mat3 normalMatrix;
 
-  MV= m_cam.getViewMatrix()*
+  MV= m_view*
       m_globalTransformMatrix*
       m_bodyTransform;
 
 
-  MVP= m_cam.getVPMatrix()*MV;
+  MVP= m_project*MV;
   normalMatrix=MV;
   normalMatrix.inverse().transpose();
   shader->setUniform("MVP",MVP);
@@ -203,11 +203,11 @@ void NGLScene::paintGL()
   ngl::Mat4 MVP;
   m_bodyTransform.identity();
   m_bodyTransform.translate(0,-1,0);
-  MV= m_cam.getViewMatrix() *
+  MV= m_view *
       m_globalTransformMatrix*
       m_bodyTransform;
 
-  MVP=m_cam.getVPMatrix()*MV;
+  MVP=m_project*MV;
 
   shader->setUniform("MVP",MVP);
   ngl::VAOPrimitives::instance()->draw("grid");
