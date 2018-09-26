@@ -5,7 +5,7 @@
 #include <ngl/NGLInit.h>
 #include <ngl/ShaderLib.h>
 #include <iostream>
-
+#include <cmath>
 
 NGLScene::NGLScene()
 {
@@ -41,8 +41,8 @@ void NGLScene::setupSim()
   for (size_t i = 0; i < 250; ++i)
   {
     m_sim->addAgent(200.0f *
-                  RVO::Vector2(std::cosf(i * 2.0f * M_PI / 250.0f),
-                               std::sinf(i * 2.0f * M_PI / 250.0f)));
+                  RVO::Vector2(cosf(i * 2.0f * M_PI / 250.0f),
+                               sinf(i * 2.0f * M_PI / 250.0f)));
     m_goals.push_back(-m_sim->getAgentPosition(i));
   }
 }

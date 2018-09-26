@@ -43,8 +43,8 @@ void NGLScene::setupSim()
 
       for (size_t i = 0; i < r / 2.5f; ++i)
       {
-        const float x = r * std::cosf(i * 2.0f * M_PI / (r / 2.5f));
-        const float y = r * std::sinf(i * 2.0f * M_PI / (r / 2.5f));
+        const float x = r * cosf(i * 2.0f * M_PI / (r / 2.5f));
+        const float y = r * sinf(i * 2.0f * M_PI / (r / 2.5f));
 
         m_sim->addAgent(RVO::Vector3(x, y, z));
         m_goals.push_back(-m_sim->getAgentPosition(m_sim->getNumAgents() - 1));
