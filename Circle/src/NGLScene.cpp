@@ -95,17 +95,16 @@ void NGLScene::initializeGL()
   // we need to initialise the NGL lib which will load all of the OpenGL functions, this must
   // be done once we have a valid GL context but before we call any GL commands. If we dont do
   // this everything will crash
-  ngl::NGLInit::instance();
+  ngl::NGLInit::initialize();
   glClearColor(1.0f, 1.0f, 1.0f, 1.0f);			   // Grey Background
   // enable depth testing for drawing
   glEnable(GL_DEPTH_TEST);
   // enable multisampling for smoother drawing
   glEnable(GL_MULTISAMPLE);
-  ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-  (*shader)["nglDiffuseShader"]->use();
-  shader->setUniform("Colour",1.0f,1.0f,0.0f,1.0f);
-  shader->setUniform("lightPos",1.0f,1.0f,1.0f);
-  shader->setUniform("lightDiffuse",1.0f,1.0f,1.0f,1.0f);
+  ngl::ShaderLib::use("nglDiffuseShader");
+  ngl::ShaderLib::setUniform("Colour",1.0f,1.0f,0.0f,1.0f);
+  ngl::ShaderLib::setUniform("lightPos",1.0f,1.0f,1.0f);
+  ngl::ShaderLib::setUniform("lightDiffuse",1.0f,1.0f,1.0f,1.0f);
   // Now we will create a basic Camera from the graphics library
   // This is a static camera so it only needs to be set once
   // First create Values for the camera position
@@ -118,8 +117,7 @@ void NGLScene::initializeGL()
   // The final two are near and far clipping planes of 0.5 and 10
   m_project=ngl::perspective(50.0f,720.0f/576.0f,0.05f,350.0f);
   setupSim();
-  ngl::VAOPrimitives::instance()->createTrianglePlane( "grid",600,600,100,100,ngl::Vec3::up());
-
+  ngl::VAOPrimitives::createTrianglePlane( "grid",600,600,100,100,ngl::Vec3::up());
   startTimer(1);
 
 }
@@ -127,8 +125,7 @@ void NGLScene::initializeGL()
 
 void NGLScene::loadMatricesToShader()
 {
-  ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-  shader->use("nglDiffuseShader");
+  ngl::ShaderLib::use("nglDiffuseShader");
 
   ngl::Mat4 MV;
   ngl::Mat4 MVP;
@@ -142,8 +139,8 @@ void NGLScene::loadMatricesToShader()
   MVP= m_project*MV;
   normalMatrix=MV;
   normalMatrix.inverse().transpose();
-  shader->setUniform("MVP",MVP);
-  shader->setUniform("normalMatrix",normalMatrix);
+  ngl::ShaderLib::setUniform("MVP",MVP);
+  ngl::ShaderLib::setUniform("normalMatrix",normalMatrix);
 }
 
 void NGLScene::paintGL()
@@ -151,9 +148,7 @@ void NGLScene::paintGL()
   // clear the screen and depth buffer
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glViewport(0,0,m_win.width,m_win.height);
-  // grab an instance of the shader manager
-  ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-  (*shader)["nglDiffuseShader"]->use();
+  ngl::ShaderLib::use("nglDiffuseShader");
 
   // Rotation based on the mouse position for our global transform
   ngl::Mat4 rotX;
@@ -162,7 +157,7 @@ void NGLScene::paintGL()
   rotX.rotateX(m_win.spinXFace);
   rotY.rotateY(m_win.spinYFace);
   // multiply the rotations
-  m_globalTransformMatrix=rotY*rotX;
+  m_globalTransformMatrix=rotX*rotY;
   // add the translations
   m_globalTransformMatrix.m_m[3][0] = m_modelPos.m_x;
   m_globalTransformMatrix.m_m[3][1] = m_modelPos.m_y;
@@ -174,7 +169,7 @@ void NGLScene::paintGL()
     t.setPosition(g.x(),0.0f,g.y());
     m_bodyTransform=t.getMatrix();
     loadMatricesToShader();
-    ngl::VAOPrimitives::instance()->draw("cube");
+    ngl::VAOPrimitives::draw("cube");
 
   }
 
@@ -194,11 +189,11 @@ void NGLScene::paintGL()
     t.setScale(1.5f, 1.5f,1.5f);
     m_bodyTransform=t.getMatrix();
     loadMatricesToShader();
-    ngl::VAOPrimitives::instance()->draw("troll");
+    ngl::VAOPrimitives::draw("troll");
   }
 
-  shader->use("nglColourShader");
-  shader->setUniform("Colour",0.3f,0.3f,0.3f,1.0f);
+  ngl::ShaderLib::use("nglColourShader");
+  ngl::ShaderLib::setUniform("Colour",0.3f,0.3f,0.3f,1.0f);
   ngl::Mat4 MV;
   ngl::Mat4 MVP;
   m_bodyTransform.identity();
@@ -209,8 +204,8 @@ void NGLScene::paintGL()
 
   MVP=m_project*MV;
 
-  shader->setUniform("MVP",MVP);
-  ngl::VAOPrimitives::instance()->draw("grid");
+  ngl::ShaderLib::setUniform("MVP",MVP);
+  ngl::VAOPrimitives::draw("grid");
 
 
 }

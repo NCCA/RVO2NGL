@@ -256,9 +256,8 @@ void NGLScene::setPreferredVelocities()
       /*
        * Perturb a little to avoid deadlocks due to perfect symmetry.
        */
-      ngl::Random *rng=ngl::Random::instance();
-      auto angle = rng->randomNumber(2.0f * ngl::PI);
-      auto dist =  rng->randomNumber(0.0001f );
+      auto angle = ngl::Random::randomNumber(2.0f * ngl::PI);
+      auto dist =  ngl::Random::randomNumber(0.0001f );
 
       m_sim->setAgentPrefVelocity(i, m_sim->getAgentPrefVelocity(i) +
                                 dist * RVO::Vector2(std::cos(angle), std::sin(angle)));
@@ -296,17 +295,16 @@ void NGLScene::initializeGL()
   // we need to initialise the NGL lib which will load all of the OpenGL functions, this must
   // be done once we have a valid GL context but before we call any GL commands. If we dont do
   // this everything will crash
-  ngl::NGLInit::instance();
+  ngl::NGLInit::initialize();
   glClearColor(1.0f, 1.0f, 1.0f, 1.0f);			   // Grey Background
   // enable depth testing for drawing
   glEnable(GL_DEPTH_TEST);
   // enable multisampling for smoother drawing
   glEnable(GL_MULTISAMPLE);
-  ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-  (*shader)["nglDiffuseShader"]->use();
-  shader->setUniform("Colour",1.0f,1.0f,0.0f,1.0f);
-  shader->setUniform("lightPos",1.0f,1.0f,1.0f);
-  shader->setUniform("lightDiffuse",1.0f,1.0f,1.0f,1.0f);
+  ngl::ShaderLib::use("nglDiffuseShader");
+  ngl::ShaderLib::setUniform("Colour",1.0f,1.0f,0.0f,1.0f);
+  ngl::ShaderLib::setUniform("lightPos",1.0f,1.0f,1.0f);
+  ngl::ShaderLib::setUniform("lightDiffuse",1.0f,1.0f,1.0f,1.0f);
   // Now we will create a basic Camera from the graphics library
   // This is a static camera so it only needs to be set once
   // First create Values for the camera position
@@ -320,7 +318,7 @@ void NGLScene::initializeGL()
   m_project=ngl::perspective(50.0f,720.0f/576.0f,0.05f,350.0f);
   setupSim();
   buildRoadmap();
-  ngl::VAOPrimitives::instance()->createTrianglePlane( "grid",200,200,10,10,ngl::Vec3::up());
+  ngl::VAOPrimitives::createTrianglePlane( "grid",200,200,10,10,ngl::Vec3::up());
 
   startTimer(1);
 
@@ -329,8 +327,7 @@ void NGLScene::initializeGL()
 
 void NGLScene::loadMatricesToShader()
 {
-  ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-  shader->use("nglDiffuseShader");
+  ngl::ShaderLib::use("nglDiffuseShader");
   ngl::Mat4 MV;
   ngl::Mat4 MVP;
   ngl::Mat3 normalMatrix;
@@ -341,8 +338,8 @@ void NGLScene::loadMatricesToShader()
   MVP= m_project*MV;
   normalMatrix=MV;
   normalMatrix.inverse().transpose();
-  shader->setUniform("MVP",MVP);
-  shader->setUniform("normalMatrix",normalMatrix);
+  ngl::ShaderLib::setUniform("MVP",MVP);
+  ngl::ShaderLib::setUniform("normalMatrix",normalMatrix);
 }
 
 void NGLScene::paintGL()
@@ -351,8 +348,7 @@ void NGLScene::paintGL()
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glViewport(0,0,m_win.width,m_win.height);
   // grab an instance of the shader manager
-  ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-  (*shader)["nglDiffuseShader"]->use();
+  ngl::ShaderLib::use("nglDiffuseShader");
 
   // Rotation based on the mouse position for our global transform
   ngl::Mat4 rotX;
@@ -361,7 +357,7 @@ void NGLScene::paintGL()
   rotX.rotateX(m_win.spinXFace);
   rotY.rotateY(m_win.spinYFace);
   // multiply the rotations
-  m_globalTransformMatrix=rotY*rotX;
+  m_globalTransformMatrix=rotX*rotY;
   // add the translations
   m_globalTransformMatrix.m_m[3][0] = m_modelPos.m_x;
   m_globalTransformMatrix.m_m[3][1] = m_modelPos.m_y;
@@ -370,7 +366,7 @@ void NGLScene::paintGL()
 
   for (size_t i = 0; i < m_sim->getNumAgents(); ++i)
   {
-    shader->setUniform("Colour",1.0f,1.0f,0.0f,1.0f);
+    ngl::ShaderLib::setUniform("Colour",1.0f,1.0f,0.0f,1.0f);
     ngl::Transformation t;
     RVO::Vector2 p=m_sim->getAgentPosition(i);
     RVO::Vector2 v=m_sim->getAgentVelocity(i);
@@ -385,40 +381,40 @@ void NGLScene::paintGL()
     t.setScale(1.5f, 1.5f,1.5f);
     m_bodyTransform=t.getMatrix();
     loadMatricesToShader();
-    ngl::VAOPrimitives::instance()->draw("troll");
+    ngl::VAOPrimitives::draw("troll");
   }
 
   // hard coded draw of the Goals from the scene setup
-  shader->setUniform("Colour",1.0f,0.0f,0.0f,1.0f);
+  ngl::ShaderLib::setUniform("Colour",1.0f,0.0f,0.0f,1.0f);
 
   ngl::Transformation t;
   t.setPosition(-25.0,1.0,25);
   t.setScale(30.0f,3.0f,30.0f);
   m_bodyTransform=t.getMatrix();
   loadMatricesToShader();
-  ngl::VAOPrimitives::instance()->draw("cube");
+  ngl::VAOPrimitives::draw("cube");
 
   t.setPosition(25.0,1.0,25);
   t.setScale(30.0f,3.0f,30.0f);
   m_bodyTransform=t.getMatrix();
   loadMatricesToShader();
-  ngl::VAOPrimitives::instance()->draw("cube");
+  ngl::VAOPrimitives::draw("cube");
 
   t.setPosition(-25.0,1.0,-25);
   t.setScale(30.0f,3.0f,30.0f);
   m_bodyTransform=t.getMatrix();
   loadMatricesToShader();
-  ngl::VAOPrimitives::instance()->draw("cube");
+  ngl::VAOPrimitives::draw("cube");
 
   t.setPosition(25.0,1.0,-25);
   t.setScale(30.0f,3.0f,30.0f);
   m_bodyTransform=t.getMatrix();
   loadMatricesToShader();
-  ngl::VAOPrimitives::instance()->draw("cube");
+  ngl::VAOPrimitives::draw("cube");
 
 
-  shader->use("nglColourShader");
-  shader->setUniform("Colour",0.3f,0.3f,0.3f,1.0f);
+  ngl::ShaderLib::use("nglColourShader");
+  ngl::ShaderLib::setUniform("Colour",0.3f,0.3f,0.3f,1.0f);
   ngl::Mat4 MV;
   ngl::Mat4 MVP;
   m_bodyTransform.identity();
@@ -428,8 +424,8 @@ void NGLScene::paintGL()
       m_bodyTransform;
   MVP= m_project*MV;
 
-  shader->setUniform("MVP",MVP);
-  ngl::VAOPrimitives::instance()->draw("grid");
+  ngl::ShaderLib::setUniform("MVP",MVP);
+  ngl::VAOPrimitives::draw("grid");
 }
 
 //----------------------------------------------------------------------------------------------------------------------

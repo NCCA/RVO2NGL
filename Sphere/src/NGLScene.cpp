@@ -97,22 +97,21 @@ void NGLScene::initializeGL()
   // we need to initialise the NGL lib which will load all of the OpenGL functions, this must
   // be done once we have a valid GL context but before we call any GL commands. If we dont do
   // this everything will crash
-  ngl::NGLInit::instance();
+  ngl::NGLInit::initialize();
   glViewport(0,0,m_win.width,m_win.height);
   glClearColor(1.0f, 1.0f, 1.0f, 1.0f);			   // Grey Background
   // enable depth testing for drawing
   glEnable(GL_DEPTH_TEST);
   // enable multisampling for smoother drawing
   glEnable(GL_MULTISAMPLE);
-  ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-  (*shader)["nglDiffuseShader"]->use();
-  shader->setUniform("Colour",1.0f,1.0f,0.0f,1.0f);
-  shader->setUniform("lightPos",1.0f,1.0f,1.0f);
-  shader->setUniform("lightDiffuse",1.0f,1.0f,1.0f,1.0f);
+  ngl::ShaderLib::use("nglDiffuseShader" );
+  ngl::ShaderLib::setUniform("Colour",1.0f,1.0f,0.0f,1.0f);
+  ngl::ShaderLib::setUniform("lightPos",1.0f,1.0f,1.0f);
+  ngl::ShaderLib::setUniform("lightDiffuse",1.0f,1.0f,1.0f,1.0f);
   // Now we will create a basic Camera from the graphics library
   // This is a static camera so it only needs to be set once
   // First create Values for the camera position
-  ngl::Vec3 from(0,0,60);
+  ngl::Vec3 from(0,0,260);
   ngl::Vec3 to(0,0,0);
   ngl::Vec3 up(0,1,0);
   // now load to our new camera
@@ -120,7 +119,7 @@ void NGLScene::initializeGL()
   // set the shape using FOV 45 Aspect Ratio based on Width and Height
   // The final two are near and far clipping planes of 0.5 and 10
   m_project=ngl::perspective(50.0f,720.0f/576.0f,0.05f,350.0f);
-  ngl::VAOPrimitives::instance()->createSphere("sphere",1.5,40);
+  ngl::VAOPrimitives::createSphere("sphere",1.5,40);
   setupSim();
   buildVAO();
   startTimer(0);
@@ -131,8 +130,6 @@ void NGLScene::initializeGL()
 
 void NGLScene::loadMatricesToShader()
 {
-  ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-
   ngl::Mat4 MV;
   ngl::Mat4 MVP;
   ngl::Mat3 normalMatrix;
@@ -143,8 +140,8 @@ void NGLScene::loadMatricesToShader()
   MVP= m_project*MV;
   normalMatrix=MV;
   normalMatrix.inverse().transpose();
-  shader->setUniform("MVP",MVP);
-  shader->setUniform("normalMatrix",normalMatrix);
+  ngl::ShaderLib::setUniform("MVP",MVP);
+  ngl::ShaderLib::setUniform("normalMatrix",normalMatrix);
 }
 
 void NGLScene::paintGL()
@@ -152,10 +149,7 @@ void NGLScene::paintGL()
   // clear the screen and depth buffer
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glViewport(0,0,m_win.width,m_win.height);
-  // grab an instance of the shader manager
-  ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-  (*shader)["nglDiffuseShader"]->use();
-
+  ngl::ShaderLib::use("nglDiffuseShader");
   // Rotation based on the mouse position for our global transform
   ngl::Mat4 rotX;
   ngl::Mat4 rotY;
@@ -163,7 +157,7 @@ void NGLScene::paintGL()
   rotX.rotateX(m_win.spinXFace);
   rotY.rotateY(m_win.spinYFace);
   // multiply the rotations
-  m_globalTransformMatrix=rotY*rotX;
+  m_globalTransformMatrix=rotX*rotY;
   // add the translations
   m_globalTransformMatrix.m_m[3][0] = m_modelPos.m_x;
   m_globalTransformMatrix.m_m[3][1] = m_modelPos.m_y;
@@ -196,6 +190,8 @@ void NGLScene::paintGL()
     m_bodyTransform=t.getMatrix();
     loadMatricesToShader();
     m_vao->draw();
+    //ngl::VAOPrimitives::draw("sphere");
+    std::cout<<"draw\n";
   }
   m_vao->unbind();
 
@@ -273,14 +269,11 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   // we then switch on the key value and set the camera in the GLWindow
   switch (_event->key())
   {
-  // escape key to quite
-  case Qt::Key_Escape : QGuiApplication::exit(EXIT_SUCCESS); break;
-  case Qt::Key_R : setupSim(); break;
-  case Qt::Key_Space : m_animate^=true; break;
-  default : break;
-
-
-
+    // escape key to quite
+    case Qt::Key_Escape : QGuiApplication::exit(EXIT_SUCCESS); break;
+    case Qt::Key_R : setupSim(); break;
+    case Qt::Key_Space : m_animate^=true; break;
+    default : break;
   }
   // finally update the GLWindow and re-draw
 
