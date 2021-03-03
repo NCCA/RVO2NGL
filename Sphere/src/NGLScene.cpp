@@ -104,7 +104,7 @@ void NGLScene::initializeGL()
   glEnable(GL_DEPTH_TEST);
   // enable multisampling for smoother drawing
   glEnable(GL_MULTISAMPLE);
-  ngl::ShaderLib::use("nglDiffuseShader" );
+  ngl::ShaderLib::use("nglDiffuseShader");
   ngl::ShaderLib::setUniform("Colour",1.0f,1.0f,0.0f,1.0f);
   ngl::ShaderLib::setUniform("lightPos",1.0f,1.0f,1.0f);
   ngl::ShaderLib::setUniform("lightDiffuse",1.0f,1.0f,1.0f,1.0f);
