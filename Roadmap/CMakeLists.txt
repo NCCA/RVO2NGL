@@ -35,10 +35,10 @@ set(CMAKE_CXX_EXTENSIONS ON)
 add_executable(${TargetName})
 
 # Add NGL include path
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/RVO2/)
+include_directories(${CMAKE_SOURCE_DIR}/RVO2/)
 
 # now add the RVO2 sources using a glob
-FILE(GLOB RVO2Sources ${CMAKE_CURRENT_SOURCE_DIR}/RVO2/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/RVO2/*.h)
+FILE(GLOB RVO2Sources ${CMAKE_SOURCE_DIR}/RVO2/*.cpp ${CMAKE_SOURCE_DIR}/RVO2/*.h)
 
 target_sources(${TargetName} PRIVATE ${PROJECT_SOURCE_DIR}/src/main.cpp  
 			${PROJECT_SOURCE_DIR}/src/NGLScene.cpp  
